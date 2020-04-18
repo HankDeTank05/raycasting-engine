@@ -59,9 +59,11 @@ class RaycastingOOP(arcade.Window):
         self.drawStart = []
         self.drawEnd = []
 
-        self.changeX = 0
-        self.changeY = 0
-        self.speed = 0.5
+        self.changeX = 0.0
+        self.changeY = 0.0
+        self.speed = 0.1
+
+        self.time = 0
 
     def on_draw(self):
         for x in range(len(self.drawStart)):
@@ -69,10 +71,13 @@ class RaycastingOOP(arcade.Window):
 
     def on_update(self, delta_time):
 
+        self.time += delta_time
+
         self.posX += self.changeX
         self.posY += self.changeY
 
-        print(f'({self.posX},{self.posY})')
+        print(f'({self.posX}, {self.posY}) at time {self.time}')
+        print(f'{self.changeX}, {self.changeY}')
 
         self.planeX = -self.dirY
         self.planeY = self.dirX
@@ -124,13 +129,17 @@ class RaycastingOOP(arcade.Window):
             self.drawEnd.append(drawEnd)
 
         def on_key_press(self, key, modifiers):
-            if key == arcade.key.W:
+            if key == arcade.key.UP:
+                print('W/UP')
                 self.changeY = self.speed
-            if key == arcade.key.A:
+            if key == arcade.key.LEFT:
+                print('A/LEFT')
                 self.changeX = -self.speed
-            if key == arcade.key.S:
+            if key == arcade.key.DOWN:
+                print('S/DOWN')
                 self.changeY = -self.speed
-            if key == arcade.key.D:
+            if key == arcade.key.RIGHT:
+                print('D/RIGHT')
                 self.changeX = self.speed
 
         def on_key_release(self, key, modifiers):
