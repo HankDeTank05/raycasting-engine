@@ -1,75 +1,149 @@
 import calculations as calc
 import arcade
 
-screenWidth = 640
-screenHeight = 480
-mapWidth = 7
-mapHeight = 7
+screenWidth = 200
+screenHeight = 150
 
-worldMap = [
-    [1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1]
-]
+class RaycastingOOP(arcade.Window):
+    """
+    Main applicaiton class
+    """
 
-posX = 2.5
-posY = 3.5
+    def __init__(self, width, height, title):
+        super().__init__(width, height, title)
+        self.mapWidth = None
+        self.mapHeight = None
 
-dirX = -1
-dirY = 0
+        self.worldMap = None
 
-planeX = 0
-planeY = 0.66
+        self.posX = None
+        self.posY = None
 
-fov = 66
+        self.dirX = None
+        self.dirY = None
 
-arcade.open_window(screenWidth, screenHeight, "raycasting please work")
+        self.planeX = None
+        self.planeY = None
 
-arcade.start_render()
-for x in range(screenWidth):
-    # calculate the ray position and direction
-    cameraX = calc.cameraX(x, screenWidth)
-    rayDirX = calc.rayDirX(dirX, planeX, cameraX)
-    rayDirY = calc.rayDirY(dirY, planeY, cameraX)
+        self.fov = None
 
-    # which box of the map we're in
-    mapX = calc.mapX(posX)
-    mapY = calc.mapY(posY)
+        self.drawStart = None
+        self.drawEnd = None
 
-    # length of ray from current position to the next x- or y-side
-    sideDistX = None
-    sideDistY = None
+        self.changeX = None
+        self.changeY = None
+        self.speed = None
 
-    # length of the ray from one x- or y-side to the next x- or y-side
-    deltaDistX = calc.deltaDistX_forRatio(rayDirX, rayDirY)
-    deltaDistY = calc.deltaDistY_forRatio(rayDirY, rayDirY)
-    perpWallDist = None
+    def setup(self):
+        self.mapWidth = 7
+        self.mapHeight = 7
 
-    # which directon to step in the x direction or y direction (either +1 or -1)
-    stepX = None
-    stepY = None
+        self.worldMap = [
+            [1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1]
+        ]
 
-    hit = 0  # was there a wall hit?
-    side = None  # was a North/South wall hit or an East/West wall hit?
-    stepX = calc.stepX(rayDirX)
-    sideDistX = calc.sideDistX(rayDirX, posX, mapX, deltaDistX)
-    stepY = calc.stepY(rayDirY)
-    sideDistY = calc.sideDistY(rayDirY, posY, mapY, deltaDistY)
+        self.posX = 2.5
+        self.posY = 2.5
 
-    calc.performDDA(hit, sideDistX, sideDistY, mapX, mapY, stepX, stepY, side, deltaDistX, deltaDistY, worldMap)
+        self.dirX = 0.5
+        self.dirY = 0.5
 
-    perpWallDist = calc.perpWallDist(side, mapX, mapY, posX, posY, stepX, stepY, rayDirX, rayDirY)
+        self.fov = 66
 
-    lineHeight = calc.lineHeight(screenHeight, perpWallDist)
+        self.drawStart = []
+        self.drawEnd = []
 
-    drawStart = calc.drawStart(lineHeight, screenHeight)
-    drawEnd = calc.drawEnd(lineHeight, screenHeight)
+        self.changeX = 0
+        self.changeY = 0
+        self.speed = 0.5
 
-    arcade.draw_line(x, drawStart, x, drawEnd, arcade.color.BLUE, 3)
+    def on_draw(self):
+        for x in range(len(self.drawStart)):
+            arcade.draw_line(x, self.drawStart[x], x, self.drawEnd[x], arcade.color.BLUE, 1)
 
-arcade.finish_render()
-arcade.run()
+    def on_update(self, delta_time):
+
+        self.posX += self.changeX
+        self.posY += self.changeY
+
+        print(f'({self.posX},{self.posY})')
+
+        self.planeX = -self.dirY
+        self.planeY = self.dirX
+
+        self.drawStart = []
+        self.drawEnd = []
+
+        arcade.start_render()
+        for x in range(screenWidth):
+            # calculate the ray position and direction
+            cameraX = calc.cameraX(x, screenWidth)
+            rayDirX = calc.rayDirX(self.dirX, self.planeX, cameraX)
+            rayDirY = calc.rayDirY(self.dirY, self.planeY, cameraX)
+
+            # which box of the map we're in
+            mapX = calc.mapX(self.posX)
+            mapY = calc.mapY(self.posY)
+
+            # length of ray from current position to the next x- or y-side
+            sideDistX = None
+            sideDistY = None
+
+            # length of the ray from one x- or y-side to the next x- or y-side
+            deltaDistX = calc.deltaDistX_forRatio(rayDirX, rayDirY)
+            deltaDistY = calc.deltaDistY_forRatio(rayDirY, rayDirY)
+            perpWallDist = None
+
+            # which directon to step in the x direction or y direction (either +1 or -1)
+            stepX = None
+            stepY = None
+
+            hit = 0  # was there a wall hit?
+            side = None  # was a North/South wall hit or an East/West wall hit?
+            stepX = calc.stepX(rayDirX)
+            sideDistX = calc.sideDistX(rayDirX, self.posX, mapX, deltaDistX)
+            stepY = calc.stepY(rayDirY)
+            sideDistY = calc.sideDistY(rayDirY, self.posY, mapY, deltaDistY)
+
+            calc.performDDA(hit, sideDistX, sideDistY, mapX, mapY, stepX, stepY, side, deltaDistX, deltaDistY, self.worldMap)
+
+            perpWallDist = calc.perpWallDist(side, mapX, mapY, self.posX, self.posY, stepX, stepY, rayDirX, rayDirY)
+
+            lineHeight = calc.lineHeight(screenHeight, perpWallDist)
+
+            drawStart = calc.drawStart(lineHeight, screenHeight)
+            drawEnd = calc.drawEnd(lineHeight, screenHeight)
+
+            self.drawStart.append(drawStart)
+            self.drawEnd.append(drawEnd)
+
+        def on_key_press(self, key, modifiers):
+            if key == arcade.key.W:
+                self.changeY = self.speed
+            if key == arcade.key.A:
+                self.changeX = -self.speed
+            if key == arcade.key.S:
+                self.changeY = -self.speed
+            if key == arcade.key.D:
+                self.changeX = self.speed
+
+        def on_key_release(self, key, modifiers):
+            if key == arcade.key.W or key == arcade.key.S:
+                self.changeY = 0
+            if key == arcade.key.A or key == arcade.key.D:
+                self.changeX = 0
+
+def main():
+    game = RaycastingOOP(screenWidth, screenHeight, "raycasting work please")
+    game.setup()
+
+    arcade.run()
+
+if __name__ == "__main__":
+    main()
