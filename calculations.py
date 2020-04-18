@@ -131,19 +131,19 @@ def stepY(rayDirY):
         return 1
 
 
-def performDDA(hit, sideDistX, sideDistY, mapX, mapY, stepX, stepY, side, deltaDistX, deltaDistY, worldMap):
+def performDDA(hit, sDistX, sDistY, mX, mY, sX, sY, side, dDistX, dDistY, worldMap):
     # was a wall hit? 1 = yes. 0 = no.
     while hit == 0:
-        if sideDistX > sideDistY:
-            sideDistX += deltaDistX
-            mapX += stepX
+        if sDistX > sDistY:
+            sDistX += dDistX
+            mX += sX
             side = 0
         else:
-            sideDistY += deltaDistY
-            mapY += stepY
+            sDistY += dDistY
+            mY += sY
             side = 1
         # check if ray has hit a wall
-        if worldMap[mapX][mapY] > 0:
+        if worldMap[mX][mY] > 0:
             hit = 1
 
 
@@ -151,20 +151,20 @@ def lineHeight(screenHeight, perpWallDist):
     return int(screenHeight / (perpWallDist + 0.00000001))
 
 
-def drawStart(lineHeight, screenHeight):
-    drawStart = -lineHeight / 2 + screenHeight / 2
-    if drawStart < 0:
+def drawStart(lHeight, screenHeight):
+    dStart = -lHeight / 2 + screenHeight / 2
+    if dStart < 0:
         return 0
     else:
-        return drawStart
+        return dStart
 
 
-def drawEnd(lineHeight, screenHeight):
-    drawEnd = lineHeight / 2 + screenHeight / 2
-    if drawEnd >= screenHeight:
+def drawEnd(lHeight, screenHeight):
+    dEnd = lHeight / 2 + screenHeight / 2
+    if dEnd >= screenHeight:
         return screenHeight - 1
     else:
-        return drawEnd
+        return dEnd
 
 
 if __name__ == "__main__":
