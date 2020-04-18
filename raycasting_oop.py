@@ -82,13 +82,11 @@ class RaycastingOOP(arcade.Window):
         self.posX = 22
         self.posY = 12
 
-        self.dirX = -2.0
+        self.dirX = -1.0
         self.dirY = 0.0
 
-        self.planeX = -self.dirY
-        self.planeY = self.dirX
-
-        self.fov = 66
+        self.planeX = 0
+        self.planeY = 0.66
 
         self.drawStart = []
         self.drawEnd = []
@@ -223,7 +221,11 @@ class RaycastingOOP(arcade.Window):
         arcade.draw_lrtb_rectangle_outline(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
                                            arcade.color.RED,
                                            mapScale)
-        arcade.draw_point((0 + self.posY) * mapScale, (24 - self.posX) * mapScale, arcade.color.ORANGE, mapScale)
+
+        # draw the player location indicator
+        arcade.draw_point((self.posY) * mapScale, (24-self.posX) * mapScale,
+                          arcade.color.ORANGE,
+                          mapScale)
 
         # arcade.draw_line(8*mapScale,1*mapScale,1*mapScale,1*mapScale,arcade.color.WHITE,mapScale)
         # arcade.draw_line(1*mapScale,1*mapScale,1*mapScale,7*mapScale,arcade.color.WHITE,mapScale)
