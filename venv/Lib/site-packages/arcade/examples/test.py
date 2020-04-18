@@ -1,0 +1,4 @@
+import pyglet.gl as gl
+gl_version = gl.glGetString(gl.GL_VERSION)
+
+print(gl_version)

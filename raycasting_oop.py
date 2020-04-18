@@ -4,6 +4,7 @@ import arcade
 screenWidth = 200
 screenHeight = 150
 
+
 class RaycastingOOP(arcade.Window):
     """
     Main applicaiton class
@@ -34,6 +35,9 @@ class RaycastingOOP(arcade.Window):
         self.changeY = None
         self.speed = None
 
+        self.time = None
+        self.oldTime = None
+
     def setup(self):
         self.mapWidth = 7
         self.mapHeight = 7
@@ -49,7 +53,7 @@ class RaycastingOOP(arcade.Window):
         ]
 
         self.posX = 2.5
-        self.posY = 2.5
+        self.posY = 3.5
 
         self.dirX = 0.5
         self.dirY = 0.5
@@ -66,15 +70,25 @@ class RaycastingOOP(arcade.Window):
         self.time = 0
 
     def on_draw(self):
-        for x in range(len(self.drawStart)):
-            arcade.draw_line(x, self.drawStart[x], x, self.drawEnd[x], arcade.color.BLUE, 1)
+        '''for x in range(len(self.drawStart)):
+            pass'''
+        pass
 
     def on_update(self, delta_time):
 
+        self.oldTime = self.time
         self.time += delta_time
 
         self.posX += self.changeX
         self.posY += self.changeY
+        if self.posX >= 5:
+            self.posX = 5
+        if self.posX <= 1:
+            self.posX = 1
+        if self.posY >= 5:
+            self.posY = 5
+        if self.posY <= 1:
+            self.posY = 1
 
         print(f'({self.posX}, {self.posY}) at time {self.time}')
         print(f'{self.changeX}, {self.changeY}')
@@ -116,7 +130,8 @@ class RaycastingOOP(arcade.Window):
             stepY = calc.stepY(rayDirY)
             sideDistY = calc.sideDistY(rayDirY, self.posY, mapY, deltaDistY)
 
-            calc.performDDA(hit, sideDistX, sideDistY, mapX, mapY, stepX, stepY, side, deltaDistX, deltaDistY, self.worldMap)
+            calc.performDDA(hit, sideDistX, sideDistY, mapX, mapY, stepX, stepY, side, deltaDistX, deltaDistY,
+                            self.worldMap)
 
             perpWallDist = calc.perpWallDist(side, mapX, mapY, self.posX, self.posY, stepX, stepY, rayDirX, rayDirY)
 
@@ -125,34 +140,38 @@ class RaycastingOOP(arcade.Window):
             drawStart = calc.drawStart(lineHeight, screenHeight)
             drawEnd = calc.drawEnd(lineHeight, screenHeight)
 
-            self.drawStart.append(drawStart)
-            self.drawEnd.append(drawEnd)
+            arcade.draw_line(x, drawStart, x, drawEnd, arcade.color.BLUE, 1)
 
-        def on_key_press(self, key, modifiers):
-            if key == arcade.key.UP:
-                print('W/UP')
-                self.changeY = self.speed
-            if key == arcade.key.LEFT:
-                print('A/LEFT')
-                self.changeX = -self.speed
-            if key == arcade.key.DOWN:
-                print('S/DOWN')
-                self.changeY = -self.speed
-            if key == arcade.key.RIGHT:
-                print('D/RIGHT')
-                self.changeX = self.speed
+            '''self.drawStart.append(drawStart)
+            self.drawEnd.append(drawEnd)'''
 
-        def on_key_release(self, key, modifiers):
-            if key == arcade.key.W or key == arcade.key.S:
-                self.changeY = 0
-            if key == arcade.key.A or key == arcade.key.D:
-                self.changeX = 0
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.W:
+            print('W/UP')
+            self.changeY = self.speed
+        if key == arcade.key.A:
+            print('A/LEFT')
+            self.changeX = -self.speed
+        if key == arcade.key.S:
+            print('S/DOWN')
+            self.changeY = -self.speed
+        if key == arcade.key.D:
+            print('D/RIGHT')
+            self.changeX = self.speed
+
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.W or key == arcade.key.S:
+            self.changeY = 0
+        if key == arcade.key.A or key == arcade.key.D:
+            self.changeX = 0
+
 
 def main():
     game = RaycastingOOP(screenWidth, screenHeight, "raycasting work please")
     game.setup()
 
     arcade.run()
+
 
 if __name__ == "__main__":
     main()
