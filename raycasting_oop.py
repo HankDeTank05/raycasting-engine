@@ -4,10 +4,12 @@ import sys
 import calculations as calc
 import arcade
 
-screenWidth = 640
-screenHeight = 480
-renderResolution = 7
-mapScale = 5
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 480
+RENDER_RESOLUTION = 50
+TARGET_FPS = 15
+TARGET_PLUSMINUS = 2
+mapScale = 1
 
 
 class RaycastingOOP(arcade.Window):
@@ -17,6 +19,10 @@ class RaycastingOOP(arcade.Window):
 
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
+        self.minFPS = None
+        self.renderResolution = RENDER_RESOLUTION
+        self.maxFPS = None
+        self.targetFPS = None
         self.mapWidth = None
         self.mapHeight = None
 
@@ -99,20 +105,27 @@ class RaycastingOOP(arcade.Window):
 
         self.time = 0
 
+        self.targetFPS = TARGET_FPS
+
     def on_draw(self):
-        pass
+        arcade.draw_text(f"Target FPS:\n- <== {self.targetFPS} ==> +",
+                         int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT*0.1),
+                         arcade.color.ORANGE)
 
     def on_update(self, delta_time):
 
-        print(f'({self.posX}, {self.posY}) at time {self.time}')
+        self.maxFPS = self.targetFPS + TARGET_PLUSMINUS
+        self.minFPS = self.targetFPS - TARGET_PLUSMINUS
+
+        #print(f'({self.posX}, {self.posY}) at time {self.time}')
 
         self.drawStart = []
         self.drawEnd = []
 
         arcade.start_render()
-        for x in range(0, screenWidth, renderResolution):
+        for x in range(0, SCREEN_WIDTH, self.renderResolution):
             # calculate the ray position and direction
-            cameraX = (2 * x / screenWidth) - 1
+            cameraX = (2 * x / SCREEN_WIDTH) - 1
             if cameraX > 1 or cameraX < -1:
                 print('cameraX is too big or too small!')
                 sys.exit()
@@ -123,7 +136,7 @@ class RaycastingOOP(arcade.Window):
             mapX = int(self.posX)
             mapY = int(self.posY)
 
-            #print(f'({mapX}, {mapY})')
+            # print(f'({mapX}, {mapY})')
 
             # length of ray from current position to the next x- or y-side
             sideDistX = None
@@ -191,35 +204,56 @@ class RaycastingOOP(arcade.Window):
             else:
                 perpWallDist = (mapY - self.posY + (1 - stepY) / 2) / (rayDirY + 0.00000001)
 
-            lineHeight = int(screenHeight / (perpWallDist + 0.00000001))
+            lineHeight = int(SCREEN_HEIGHT / (perpWallDist + 0.00000001))
 
-            drawStart = -lineHeight / 2 + screenHeight / 2
+            drawStart = -lineHeight / 2 + SCREEN_HEIGHT / 2
             if drawStart < 0:
                 drawStart = 0
 
-            drawEnd = lineHeight / 2 + screenHeight / 2
-            if drawEnd >= screenHeight:
-                drawEnd = screenHeight - 1
+            drawEnd = lineHeight / 2 + SCREEN_HEIGHT / 2
+            if drawEnd >= SCREEN_HEIGHT:
+                drawEnd = SCREEN_HEIGHT - 1
 
-            if self.worldMap[mapX][mapY] == 1:
-                arcade.draw_line(x, drawStart, x, drawEnd, arcade.color.RED, renderResolution)
-            elif self.worldMap[mapX][mapY] == 2:
-                arcade.draw_line(x, drawStart, x, drawEnd, arcade.color.GREEN, renderResolution)
-            elif self.worldMap[mapX][mapY] == 3:
-                arcade.draw_line(x, drawStart, x, drawEnd, arcade.color.BLUE, renderResolution)
-            elif self.worldMap[mapX][mapY] == 4:
-                arcade.draw_line(x, drawStart, x, drawEnd, arcade.color.WHITE, renderResolution)
-            else:
-                arcade.draw_line(x, drawStart, x, drawEnd, arcade.color.YELLOW, renderResolution)
+            if side == 0:
+                if self.worldMap[mapX][mapY] == 1:
+                    color = arcade.color.RED
+                elif self.worldMap[mapX][mapY] == 2:
+                    color = arcade.color.GREEN
+                elif self.worldMap[mapX][mapY] == 3:
+                    color = arcade.color.BLUE
+                elif self.worldMap[mapX][mapY] == 4:
+                    color = arcade.color.WHITE
+                else:
+                    color = arcade.color.YELLOW
+            elif side == 1:
+                if self.worldMap[mapX][mapY] == 1:
+                    color = arcade.color.DARK_RED
+                elif self.worldMap[mapX][mapY] == 2:
+                    color = arcade.color.DARK_GREEN
+                elif self.worldMap[mapX][mapY] == 3:
+                    color = arcade.color.DARK_BLUE
+                elif self.worldMap[mapX][mapY] == 4:
+                    color = arcade.color.GRAY
+                else:
+                    color = arcade.color.DARK_YELLOW
+
+            arcade.draw_line(x, drawStart, x, drawEnd, color, self.renderResolution)
 
         self.oldTime = self.time
         self.time += delta_time
 
-        self.frameTime = (self.time - self.oldTime) / 10  # frameTime is the time this frame has taken in seconds
-        print(1.0 / self.frameTime)  # FPS counter
-
+        self.frameTime = (self.time - self.oldTime)  # frameTime is the time this frame has taken in seconds
+        #print(1.0 / self.frameTime)  # FPS counter
+        FPS = 1/self.frameTime
+        arcade.draw_text(f'FPS: {1.0/self.frameTime}',
+                         SCREEN_WIDTH//2-30, int(SCREEN_HEIGHT*0.9),
+                         arcade.color.SAPPHIRE_BLUE)
+        if FPS < self.minFPS:
+            self.renderResolution += 1
+        elif FPS > self.maxFPS:
+            self.renderResolution -= 1
         self.moveSpeed = self.frameTime * 5.0  # constant value in squares/second
-        self.rotationSpeed = self.frameTime * 3.0  # constant value in radians/second
+        self.rotationSpeed = self.frameTime * 1.2  # constant value in radians/second
 
         if self.moveForward:
             if not self.worldMap[int(self.posX + self.dirX * self.moveSpeed)][int(self.posY)]:
@@ -249,13 +283,13 @@ class RaycastingOOP(arcade.Window):
             self.planeY = oldPlaneX * math.sin(-self.rotationSpeed) + self.planeY * math.cos(-self.rotationSpeed)
 
         arcade.draw_lrtb_rectangle_filled(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
-                                           arcade.color.BLACK)
+                                          arcade.color.BLACK)
         arcade.draw_lrtb_rectangle_outline(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
-                                          arcade.color.RED,
+                                           arcade.color.RED,
                                            mapScale)
 
         # draw the player location indicator
-        arcade.draw_point((self.posX) * mapScale, (24-self.posY) * mapScale,
+        arcade.draw_point((self.posX) * mapScale, (24 - self.posY) * mapScale,
                           arcade.color.ORANGE,
                           mapScale)
 
@@ -301,17 +335,21 @@ class RaycastingOOP(arcade.Window):
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W:
-            print('W/UP')
+            #print('W/UP')
             self.moveForward = True
         if key == arcade.key.A:
-            print('A/LEFT')
+            #print('A/LEFT')
             self.rotateLeft = True
         if key == arcade.key.S:
-            print('S/DOWN')
+            #print('S/DOWN')
             self.moveBackward = True
         if key == arcade.key.D:
-            print('D/RIGHT')
+            #print('D/RIGHT')
             self.rotateRight = True
+        if key == arcade.key.LEFT:
+            self.targetFPS -= 1
+        if key == arcade.key.RIGHT:
+            self.targetFPS += 1
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W:
@@ -325,7 +363,7 @@ class RaycastingOOP(arcade.Window):
 
 
 def main():
-    game = RaycastingOOP(screenWidth, screenHeight, "raycasting work please")
+    game = RaycastingOOP(SCREEN_WIDTH, SCREEN_HEIGHT, "raycasting work please")
     game.setup()
 
     arcade.run()
