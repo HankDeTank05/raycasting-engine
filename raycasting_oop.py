@@ -4,11 +4,17 @@ import sys
 import calculations as calc
 import arcade
 
-SCREEN_WIDTH = 200
-SCREEN_HEIGHT = 160
+SCREEN_WIDTH = 480
+SCREEN_HEIGHT = 360
 
 TEX_WIDTH = 64
 TEX_HEIGHT = 64
+
+MOVE_SPEED = 5.0
+ROTATION_SPEED = 2.0
+
+FLOOR_COLOR = arcade.color.LAWN_GREEN
+CEILING_COLOR = arcade.color.DEEP_SKY_BLUE
 
 RENDER_RESOLUTION = 50
 TARGET_FPS = 15
@@ -63,6 +69,9 @@ class RaycastingOOP(arcade.Window):
 
         self.shape_list = None
 
+        self.point_list = None
+        self.color_list = None
+
     def setup(self):
         self.mapWidth = 24
         self.mapHeight = 24
@@ -94,6 +103,19 @@ class RaycastingOOP(arcade.Window):
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
         ]
 
+        '''self.point_list = []
+
+        for y in range(len(self.worldMap)):
+            for x in range(len(self.worldMap[y])):
+                if self.worldMap[x][y] != 0:
+                    point = [x, y]
+                    while True:
+                        try:
+                            self.point_list[self.worldMap[x][y]].append(point)
+                            break
+                        except IndexError:
+                            self.point_list.append([])'''
+
         self.posX = 22
         self.posY = 12
 
@@ -118,9 +140,24 @@ class RaycastingOOP(arcade.Window):
         self.targetFPS = TARGET_FPS
 
         self.shape_list = arcade.ShapeElementList()
+        self.color_list = [
+            arcade.color.RED,
+            arcade.color.GREEN,
+            arcade.color.BLUE,
+            arcade.color.WHITE,
+            arcade.color.YELLOW
+        ]
 
     def on_draw(self):
         arcade.start_render()
+
+        '''for color_index in range(len(self.point_list)):
+            self.shape_list.append(
+                arcade.create_rectangles_filled_with_colors(
+                    self.point_list[color_index],
+                    self.color_list[color_index]
+                )
+            )'''
 
         self.shape_list.draw()
 
@@ -146,7 +183,7 @@ class RaycastingOOP(arcade.Window):
 
         # arcade.draw_line(8*mapScale,1*mapScale,1*mapScale,1*mapScale,arcade.color.WHITE,mapScale)
         # arcade.draw_line(1*mapScale,1*mapScale,1*mapScale,7*mapScale,arcade.color.WHITE,mapScale)
-        arcade.draw_line_strip(
+        '''arcade.draw_line_strip(
             [[8 * mapScale, 1 * mapScale],
              [1 * mapScale, 1 * mapScale],
              [1 * mapScale, 7 * mapScale],
@@ -182,7 +219,7 @@ class RaycastingOOP(arcade.Window):
 
         arcade.draw_point(6 * mapScale, 5 * mapScale,
                           arcade.color.YELLOW,
-                          mapScale)
+                          mapScale)'''
 
     def on_update(self, delta_time):
 
@@ -190,6 +227,21 @@ class RaycastingOOP(arcade.Window):
         self.minFPS = self.targetFPS - TARGET_PLUSMINUS
 
         self.shape_list = arcade.ShapeElementList()
+
+        floor = arcade.create_rectangle(
+            SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.25),
+            SCREEN_WIDTH, SCREEN_HEIGHT//2,
+            FLOOR_COLOR
+        )
+
+        ceiling = arcade.create_rectangle(
+            SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.75),
+            SCREEN_WIDTH, SCREEN_HEIGHT//2,
+            CEILING_COLOR
+        )
+
+        self.shape_list.append(floor)
+        self.shape_list.append(ceiling)
 
         # print(f'({self.posX}, {self.posY}) at time {self.time}')
 
@@ -320,8 +372,8 @@ class RaycastingOOP(arcade.Window):
             self.renderResolution += 1
         elif FPS > self.maxFPS:
             self.renderResolution -= 1
-        self.moveSpeed = self.frameTime * 5.0  # constant value in squares/second
-        self.rotationSpeed = self.frameTime * 1.5  # constant value in radians/second
+        self.moveSpeed = self.frameTime * MOVE_SPEED  # constant value in squares/second
+        self.rotationSpeed = self.frameTime * ROTATION_SPEED  # constant value in radians/second
 
         if self.moveForward:
             if not self.worldMap[int(self.posX + self.dirX * self.moveSpeed)][int(self.posY)]:
@@ -397,6 +449,15 @@ class RaycastingOOP(arcade.Window):
             self.rotateLeft = False
         if key == arcade.key.RIGHT:
             self.rotateRight = False
+
+    def generate_minimap(self):
+        wall_type = []
+        for y in range(len(self.worldMap)):
+            for x in range(len(self.worldMap[y])):
+                wall_type[self.worldMap[x][y]].append([x, y])
+
+        for color in range(len(wall_type)):
+            pass
 
 
 def main():
