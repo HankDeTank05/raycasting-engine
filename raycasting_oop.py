@@ -55,6 +55,8 @@ class RaycastingOOP(arcade.Window):
         self.moveSpeed = None
         self.rotationSpeed = None
 
+        self.shape_list = None
+
     def setup(self):
         self.mapWidth = 24
         self.mapHeight = 24
@@ -107,22 +109,83 @@ class RaycastingOOP(arcade.Window):
 
         self.targetFPS = TARGET_FPS
 
+        self.shape_list = arcade.ShapeElementList()
+
     def on_draw(self):
+        arcade.start_render()
+
+        self.shape_list.draw()
+
         arcade.draw_text(f"Target FPS:\n- <== {self.targetFPS} ==> +",
-                         int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT*0.1),
+                         int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT * 0.1),
                          arcade.color.ORANGE)
+
+        arcade.draw_text(f'FPS: {1.0 / self.frameTime}',
+                         SCREEN_WIDTH // 2 - 30, int(SCREEN_HEIGHT * 0.9),
+                         arcade.color.SAPPHIRE_BLUE)
+
+        arcade.draw_lrtb_rectangle_filled(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
+                                          arcade.color.BLACK)
+
+        arcade.draw_lrtb_rectangle_outline(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
+                                           arcade.color.RED,
+                                           mapScale)
+
+        # draw the player location indicator
+        arcade.draw_point((self.posX) * mapScale, (24 - self.posY) * mapScale,
+                          arcade.color.ORANGE,
+                          mapScale)
+
+        # arcade.draw_line(8*mapScale,1*mapScale,1*mapScale,1*mapScale,arcade.color.WHITE,mapScale)
+        # arcade.draw_line(1*mapScale,1*mapScale,1*mapScale,7*mapScale,arcade.color.WHITE,mapScale)
+        arcade.draw_line_strip(
+            [[8 * mapScale, 1 * mapScale],
+             [1 * mapScale, 1 * mapScale],
+             [1 * mapScale, 7 * mapScale],
+             [3 * mapScale, 7 * mapScale],
+             [3 * mapScale, 6 * mapScale],
+             [3 * mapScale, 7 * mapScale],
+             [8 * mapScale, 7 * mapScale],
+             [8 * mapScale, 3 * mapScale],
+             [3 * mapScale, 3 * mapScale],
+             [3 * mapScale, 4 * mapScale]],
+            arcade.color.WHITE, mapScale)
+        arcade.draw_line_strip(
+            [[6 * mapScale, 20 * mapScale],
+             [11 * mapScale, 20 * mapScale],
+             [11 * mapScale, 15 * mapScale],
+             [6 * mapScale, 15 * mapScale],
+             [6 * mapScale, 20 * mapScale]],
+            arcade.color.GREEN,
+            mapScale
+        )
+        arcade.draw_points(
+            [[16 * mapScale, 20 * mapScale],
+             [18 * mapScale, 20 * mapScale],
+             [20 * mapScale, 20 * mapScale],
+             [20 * mapScale, 18 * mapScale],
+             [20 * mapScale, 16 * mapScale],
+             [18 * mapScale, 16 * mapScale],
+             [16 * mapScale, 16 * mapScale],
+             [16 * mapScale, 18 * mapScale]],
+            arcade.color.BLUE,
+            mapScale
+        )
+
+        arcade.draw_point(6 * mapScale, 5 * mapScale,
+                          arcade.color.YELLOW,
+                          mapScale)
 
     def on_update(self, delta_time):
 
         self.maxFPS = self.targetFPS + TARGET_PLUSMINUS
         self.minFPS = self.targetFPS - TARGET_PLUSMINUS
 
-        #print(f'({self.posX}, {self.posY}) at time {self.time}')
+        self.shape_list = arcade.ShapeElementList()
 
-        self.drawStart = []
-        self.drawEnd = []
+        # print(f'({self.posX}, {self.posY}) at time {self.time}')
 
-        arcade.start_render()
+        # arcade.start_render()
         for x in range(0, SCREEN_WIDTH, self.renderResolution):
             # calculate the ray position and direction
             cameraX = (2 * x / SCREEN_WIDTH) - 1
@@ -237,17 +300,14 @@ class RaycastingOOP(arcade.Window):
                 else:
                     color = arcade.color.DARK_YELLOW
 
-            arcade.draw_line(x, drawStart, x, drawEnd, color, self.renderResolution)
+            self.shape_list.append(arcade.create_line(x, drawStart, x, drawEnd, color, self.renderResolution))
 
         self.oldTime = self.time
         self.time += delta_time
 
         self.frameTime = (self.time - self.oldTime)  # frameTime is the time this frame has taken in seconds
-        #print(1.0 / self.frameTime)  # FPS counter
-        FPS = 1/self.frameTime
-        arcade.draw_text(f'FPS: {1.0/self.frameTime}',
-                         SCREEN_WIDTH//2-30, int(SCREEN_HEIGHT*0.9),
-                         arcade.color.SAPPHIRE_BLUE)
+        # print(1.0 / self.frameTime)  # FPS counter
+        FPS = 1 / self.frameTime
         if FPS < self.minFPS:
             self.renderResolution += 1
         elif FPS > self.maxFPS:
@@ -282,69 +342,18 @@ class RaycastingOOP(arcade.Window):
             self.planeX = self.planeX * math.cos(-self.rotationSpeed) - self.planeY * math.sin(-self.rotationSpeed)
             self.planeY = oldPlaneX * math.sin(-self.rotationSpeed) + self.planeY * math.cos(-self.rotationSpeed)
 
-        arcade.draw_lrtb_rectangle_filled(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
-                                          arcade.color.BLACK)
-        arcade.draw_lrtb_rectangle_outline(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
-                                           arcade.color.RED,
-                                           mapScale)
-
-        # draw the player location indicator
-        arcade.draw_point((self.posX) * mapScale, (24 - self.posY) * mapScale,
-                          arcade.color.ORANGE,
-                          mapScale)
-
-        # arcade.draw_line(8*mapScale,1*mapScale,1*mapScale,1*mapScale,arcade.color.WHITE,mapScale)
-        # arcade.draw_line(1*mapScale,1*mapScale,1*mapScale,7*mapScale,arcade.color.WHITE,mapScale)
-        arcade.draw_line_strip(
-            [[8 * mapScale, 1 * mapScale],
-             [1 * mapScale, 1 * mapScale],
-             [1 * mapScale, 7 * mapScale],
-             [3 * mapScale, 7 * mapScale],
-             [3 * mapScale, 6 * mapScale],
-             [3 * mapScale, 7 * mapScale],
-             [8 * mapScale, 7 * mapScale],
-             [8 * mapScale, 3 * mapScale],
-             [3 * mapScale, 3 * mapScale],
-             [3 * mapScale, 4 * mapScale]],
-            arcade.color.WHITE, mapScale)
-        arcade.draw_line_strip(
-            [[6 * mapScale, 20 * mapScale],
-             [11 * mapScale, 20 * mapScale],
-             [11 * mapScale, 15 * mapScale],
-             [6 * mapScale, 15 * mapScale],
-             [6 * mapScale, 20 * mapScale]],
-            arcade.color.GREEN,
-            mapScale
-        )
-        arcade.draw_points(
-            [[16 * mapScale, 20 * mapScale],
-             [18 * mapScale, 20 * mapScale],
-             [20 * mapScale, 20 * mapScale],
-             [20 * mapScale, 18 * mapScale],
-             [20 * mapScale, 16 * mapScale],
-             [18 * mapScale, 16 * mapScale],
-             [16 * mapScale, 16 * mapScale],
-             [16 * mapScale, 18 * mapScale]],
-            arcade.color.BLUE,
-            mapScale
-        )
-
-        arcade.draw_point(6 * mapScale, 5 * mapScale,
-                          arcade.color.YELLOW,
-                          mapScale)
-
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W:
-            #print('W/UP')
+            # print('W/UP')
             self.moveForward = True
         if key == arcade.key.A:
-            #print('A/LEFT')
+            # print('A/LEFT')
             self.rotateLeft = True
         if key == arcade.key.S:
-            #print('S/DOWN')
+            # print('S/DOWN')
             self.moveBackward = True
         if key == arcade.key.D:
-            #print('D/RIGHT')
+            # print('D/RIGHT')
             self.rotateRight = True
         if key == arcade.key.LEFT:
             self.targetFPS -= 1
