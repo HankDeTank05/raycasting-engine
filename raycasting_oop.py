@@ -1,11 +1,12 @@
 import math
+import sys
 
 import calculations as calc
 import arcade
 
 screenWidth = 640
 screenHeight = 480
-renderResolution = 4
+renderResolution = 7
 mapScale = 5
 
 
@@ -111,37 +112,69 @@ class RaycastingOOP(arcade.Window):
         arcade.start_render()
         for x in range(0, screenWidth, renderResolution):
             # calculate the ray position and direction
-            cameraX = calc.cameraX(x, screenWidth)
-            rayDirX = calc.rayDirX(self.dirX, self.planeX, cameraX)
-            rayDirY = calc.rayDirY(self.dirY, self.planeY, cameraX)
+            cameraX = (2 * x / screenWidth) - 1
+            if cameraX > 1 or cameraX < -1:
+                print('cameraX is too big or too small!')
+                sys.exit()
+            rayDirX = self.dirX + self.planeX * cameraX
+            rayDirY = self.dirY + self.planeY * cameraX
 
             # which box of the map we're in
             mapX = int(self.posX)
             mapY = int(self.posY)
+
+            #print(f'({mapX}, {mapY})')
 
             # length of ray from current position to the next x- or y-side
             sideDistX = None
             sideDistY = None
 
             # length of the ray from one x- or y-side to the next x- or y-side
-            deltaDistX = calc.deltaDistX_forRatio(rayDirX, rayDirY)
-            deltaDistY = calc.deltaDistY_forRatio(rayDirY, rayDirY)
+            try:
+                deltaDistX = abs(1 / rayDirX)
+            except ZeroDivisionError:
+                if rayDirY == 0:
+                    deltaDistX = 0
+                else:
+                    if rayDirX == 0:
+                        deltaDistX = 1
+                    else:
+                        deltaDistX = abs(1 / rayDirX)
+            try:
+                deltaDistY = abs(1 / rayDirY)
+            except ZeroDivisionError:
+                if rayDirX == 0:
+                    deltaDistY = 0
+                else:
+                    if rayDirY == 0:
+                        deltaDistY = 1
+                    else:
+                        deltaDistY = abs(1 / rayDirY)
             perpWallDist = None
 
-            # which directon to step in the x direction or y direction (either +1 or -1)
+            # which direction to step in the x direction or y direction (either +1 or -1)
             stepX = None
             stepY = None
 
             hit = 0  # was there a wall hit?
             side = None  # was a North/South wall hit or an East/West wall hit?
-            stepX = calc.stepX(rayDirX)
-            sideDistX = calc.sideDistX(rayDirX, self.posX, mapX, deltaDistX)
-            stepY = calc.stepY(rayDirY)
-            sideDistY = calc.sideDistY(rayDirY, self.posY, mapY, deltaDistY)
+            if rayDirX < 0:
+                stepX = -1
+                sideDistX = (self.posX - mapX) * deltaDistX
+            else:
+                stepX = 1
+                sideDistX = (mapX + 1.0 - self.posX) * deltaDistX
+
+            if rayDirY < 0:
+                stepY = -1
+                sideDistY = (self.posY - mapY) * deltaDistY
+            else:
+                stepY = 1
+                sideDistY = (mapY + 1.0 - self.posY) * deltaDistY
 
             # was a wall hit? 1 = yes. 0 = no.
             while hit == 0:
-                if sideDistX > sideDistY:
+                if sideDistX < sideDistY:
                     sideDistX += deltaDistX
                     mapX += stepX
                     side = 0
@@ -179,9 +212,6 @@ class RaycastingOOP(arcade.Window):
             else:
                 arcade.draw_line(x, drawStart, x, drawEnd, arcade.color.YELLOW, renderResolution)
 
-            '''self.drawStart.append(drawStart)
-            self.drawEnd.append(drawEnd)'''
-
         self.oldTime = self.time
         self.time += delta_time
 
@@ -218,12 +248,14 @@ class RaycastingOOP(arcade.Window):
             self.planeX = self.planeX * math.cos(-self.rotationSpeed) - self.planeY * math.sin(-self.rotationSpeed)
             self.planeY = oldPlaneX * math.sin(-self.rotationSpeed) + self.planeY * math.cos(-self.rotationSpeed)
 
+        arcade.draw_lrtb_rectangle_filled(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
+                                           arcade.color.BLACK)
         arcade.draw_lrtb_rectangle_outline(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
-                                           arcade.color.RED,
+                                          arcade.color.RED,
                                            mapScale)
 
         # draw the player location indicator
-        arcade.draw_point((self.posY) * mapScale, (24-self.posX) * mapScale,
+        arcade.draw_point((self.posX) * mapScale, (24-self.posY) * mapScale,
                           arcade.color.ORANGE,
                           mapScale)
 
