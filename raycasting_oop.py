@@ -4,8 +4,8 @@ import sys
 import calculations as calc
 import arcade
 
-SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 480
+SCREEN_WIDTH = 200
+SCREEN_HEIGHT = 160
 
 TEX_WIDTH = 64
 TEX_HEIGHT = 64
@@ -48,6 +48,8 @@ class RaycastingOOP(arcade.Window):
 
         self.moveForward = None
         self.moveBackward = None
+        self.strafeLeft = None
+        self.strafeRight = None
         self.rotateLeft = None
         self.rotateRight = None
 
@@ -106,6 +108,8 @@ class RaycastingOOP(arcade.Window):
 
         self.moveForward = False
         self.moveBackward = False
+        self.strafeLeft = False
+        self.strafeRight = False
         self.rotateLeft = False
         self.rotateRight = False
 
@@ -317,7 +321,7 @@ class RaycastingOOP(arcade.Window):
         elif FPS > self.maxFPS:
             self.renderResolution -= 1
         self.moveSpeed = self.frameTime * 5.0  # constant value in squares/second
-        self.rotationSpeed = self.frameTime * 1.2  # constant value in radians/second
+        self.rotationSpeed = self.frameTime * 1.5  # constant value in radians/second
 
         if self.moveForward:
             if not self.worldMap[int(self.posX + self.dirX * self.moveSpeed)][int(self.posY)]:
@@ -329,6 +333,18 @@ class RaycastingOOP(arcade.Window):
                 self.posX -= self.dirX * self.moveSpeed
             if not self.worldMap[int(self.posX)][int(self.posY - self.dirY * self.moveSpeed)]:
                 self.posY -= self.dirY * self.moveSpeed
+
+        if self.strafeLeft:
+            if not self.worldMap[int(self.posX - self.dirY * self.moveSpeed)][int(self.posY)]:
+                self.posX -= self.dirY * self.moveSpeed
+            if not self.worldMap[int(self.posX)][int(self.posY + self.dirX * self.moveSpeed)]:
+                self.posY += self.dirX * self.moveSpeed
+        elif self.strafeRight:
+            if not self.worldMap[int(self.posX + self.dirY * self.moveSpeed)][int(self.posY)]:
+                self.posX += self.dirY * self.moveSpeed
+            if not self.worldMap[int(self.posX)][int(self.posY - self.dirX * self.moveSpeed)]:
+                self.posY -= self.dirX * self.moveSpeed
+
         if self.rotateLeft:
             # both camera direction and camera plane must be rotated
             oldDirX = self.dirX
@@ -352,16 +368,20 @@ class RaycastingOOP(arcade.Window):
             self.moveForward = True
         if key == arcade.key.A:
             # print('A/LEFT')
-            self.rotateLeft = True
+            self.strafeLeft = True
         if key == arcade.key.S:
             # print('S/DOWN')
             self.moveBackward = True
         if key == arcade.key.D:
             # print('D/RIGHT')
-            self.rotateRight = True
+            self.strafeRight = True
         if key == arcade.key.LEFT:
-            self.targetFPS -= 1
+            self.rotateLeft = True
         if key == arcade.key.RIGHT:
+            self.rotateRight = True
+        if key == arcade.key.Q:
+            self.targetFPS -= 1
+        if key == arcade.key.E:
             self.targetFPS += 1
 
     def on_key_release(self, key, modifiers):
@@ -370,8 +390,12 @@ class RaycastingOOP(arcade.Window):
         if key == arcade.key.S:
             self.moveBackward = False
         if key == arcade.key.A:
-            self.rotateLeft = False
+            self.strafeLeft = False
         if key == arcade.key.D:
+            self.strafeRight = False
+        if key == arcade.key.LEFT:
+            self.rotateLeft = False
+        if key == arcade.key.RIGHT:
             self.rotateRight = False
 
 
