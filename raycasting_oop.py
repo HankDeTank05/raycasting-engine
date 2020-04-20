@@ -18,7 +18,7 @@ CEILING_COLOR = arcade.color.DEEP_SKY_BLUE
 
 RENDER_RESOLUTION = 50
 TARGET_FPS = 15
-TARGET_PLUSMINUS = 2
+TARGET_PLUS_MINUS = 2
 mapScale = 1
 
 
@@ -30,7 +30,7 @@ class RaycastingOOP(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         self.minFPS = None
-        self.renderResolution = RENDER_RESOLUTION
+        self.renderResolution = None
         self.maxFPS = None
         self.targetFPS = None
         self.mapWidth = None
@@ -71,6 +71,7 @@ class RaycastingOOP(arcade.Window):
 
         self.point_list = None
         self.color_list = None
+        self.dark_color_list = None
 
     def setup(self):
         self.mapWidth = 24
@@ -116,18 +117,22 @@ class RaycastingOOP(arcade.Window):
                         except IndexError:
                             self.point_list.append([])'''
 
+        # initialize and declare position variables
         self.posX = 22
         self.posY = 12
 
+        # initialize and declare the look-direction variables
         self.dirX = -1.0
         self.dirY = 0.0
 
+        # initialize and declare the
         self.planeX = 0
-        self.planeY = 0.66
+        self.planeY = 1
 
         self.drawStart = []
         self.drawEnd = []
 
+        # initialize and declare movement boolean flags to false
         self.moveForward = False
         self.moveBackward = False
         self.strafeLeft = False
@@ -135,18 +140,37 @@ class RaycastingOOP(arcade.Window):
         self.rotateLeft = False
         self.rotateRight = False
 
+        # initialize and declare the game time to 0
         self.time = 0
 
+        # start with the default target FPS
         self.targetFPS = TARGET_FPS
 
+        # initialize an empty ShapeElementList to store the line objects in
         self.shape_list = arcade.ShapeElementList()
         self.color_list = [
             arcade.color.RED,
             arcade.color.GREEN,
             arcade.color.BLUE,
             arcade.color.WHITE,
-            arcade.color.YELLOW
+            arcade.color.YELLOW,
+            arcade.color.PURPLE,
+            arcade.color.ORANGE,
+            arcade.color.PINK
         ]
+
+        self.dark_color_list = [
+            arcade.color.DARK_RED,
+            arcade.color.DARK_GREEN,
+            arcade.color.DARK_BLUE,
+            arcade.color.GRAY,
+            arcade.color.DARK_YELLOW,
+            arcade.color.DARK_PASTEL_PURPLE,
+            arcade.color.DARK_ORANGE,
+            arcade.color.DARK_PINK
+        ]
+
+        self.renderResolution = RENDER_RESOLUTION
 
     def on_draw(self):
         arcade.start_render()
@@ -159,19 +183,24 @@ class RaycastingOOP(arcade.Window):
                 )
             )'''
 
+        # draw all shapes in the list
         self.shape_list.draw()
 
-        arcade.draw_text(f"Target FPS:\n- <== {self.targetFPS} ==> +",
+        # draw the targetFPS text
+        arcade.draw_text(f"Target FPS:\n- <==Q {self.targetFPS} E==> +",
                          int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT * 0.1),
                          arcade.color.ORANGE)
 
+        # draw the FPS indicator text
         arcade.draw_text(f'FPS: {1.0 / self.frameTime}',
                          SCREEN_WIDTH // 2 - 30, int(SCREEN_HEIGHT * 0.9),
                          arcade.color.SAPPHIRE_BLUE)
 
+        # draw minimap background
         arcade.draw_lrtb_rectangle_filled(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
                                           arcade.color.BLACK)
 
+        # draw minimap outer walls
         arcade.draw_lrtb_rectangle_outline(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
                                            arcade.color.RED,
                                            mapScale)
@@ -223,20 +252,20 @@ class RaycastingOOP(arcade.Window):
 
     def on_update(self, delta_time):
 
-        self.maxFPS = self.targetFPS + TARGET_PLUSMINUS
-        self.minFPS = self.targetFPS - TARGET_PLUSMINUS
+        self.maxFPS = self.targetFPS + TARGET_PLUS_MINUS
+        self.minFPS = self.targetFPS - TARGET_PLUS_MINUS
 
         self.shape_list = arcade.ShapeElementList()
 
         floor = arcade.create_rectangle(
-            SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.25),
-            SCREEN_WIDTH, SCREEN_HEIGHT//2,
+            SCREEN_WIDTH // 2, int(SCREEN_HEIGHT * 0.25),
+            SCREEN_WIDTH, SCREEN_HEIGHT // 2,
             FLOOR_COLOR
         )
 
         ceiling = arcade.create_rectangle(
-            SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.75),
-            SCREEN_WIDTH, SCREEN_HEIGHT//2,
+            SCREEN_WIDTH // 2, int(SCREEN_HEIGHT * 0.75),
+            SCREEN_WIDTH, SCREEN_HEIGHT // 2,
             CEILING_COLOR
         )
 
@@ -338,26 +367,14 @@ class RaycastingOOP(arcade.Window):
                 drawEnd = SCREEN_HEIGHT - 1
 
             if side == 0:
-                if self.worldMap[mapX][mapY] == 1:
-                    color = arcade.color.RED
-                elif self.worldMap[mapX][mapY] == 2:
-                    color = arcade.color.GREEN
-                elif self.worldMap[mapX][mapY] == 3:
-                    color = arcade.color.BLUE
-                elif self.worldMap[mapX][mapY] == 4:
-                    color = arcade.color.WHITE
-                else:
+                try:
+                    color = self.color_list[self.worldMap[mapX][mapY]]
+                except IndexError:
                     color = arcade.color.YELLOW
             elif side == 1:
-                if self.worldMap[mapX][mapY] == 1:
-                    color = arcade.color.DARK_RED
-                elif self.worldMap[mapX][mapY] == 2:
-                    color = arcade.color.DARK_GREEN
-                elif self.worldMap[mapX][mapY] == 3:
-                    color = arcade.color.DARK_BLUE
-                elif self.worldMap[mapX][mapY] == 4:
-                    color = arcade.color.GRAY
-                else:
+                try:
+                    color = self.dark_color_list[self.worldMap[mapX][mapY]]
+                except IndexError:
                     color = arcade.color.DARK_YELLOW
 
             self.shape_list.append(arcade.create_line(x, drawStart, x, drawEnd, color, self.renderResolution))
@@ -461,7 +478,7 @@ class RaycastingOOP(arcade.Window):
 
 
 def main():
-    game = RaycastingOOP(SCREEN_WIDTH, SCREEN_HEIGHT, "raycasting work please")
+    game = RaycastingOOP(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting in Python")
     game.setup()
 
     arcade.run()
