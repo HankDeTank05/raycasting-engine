@@ -468,13 +468,7 @@ class RaycastingOOP(arcade.Window):
             self.rotateRight = False
 
     def generate_minimap(self):
-        wall_type = []
-        for y in range(len(self.worldMap)):
-            for x in range(len(self.worldMap[y])):
-                wall_type[self.worldMap[x][y]].append([x, y])
-
-        for color in range(len(wall_type)):
-            pass
+        pass
 
 
 def main():
