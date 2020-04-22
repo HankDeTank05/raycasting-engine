@@ -1,6 +1,6 @@
 import math
 import sys
-import numpy
+import numpy as np
 
 import calculations as calc
 import arcade
@@ -80,7 +80,7 @@ class RaycastingOOP(arcade.Window):
         self.map_width = 24
         self.map_height = 24
 
-        self.world_map = [
+        self.world_map = np.array([
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7, 7, 7],
             [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 7],
             [4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7],
@@ -105,7 +105,7 @@ class RaycastingOOP(arcade.Window):
             [4, 0, 6, 0, 6, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 5, 0, 0, 2, 0, 0, 0, 2],
             [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
-        ]
+        ])
 
         '''self.point_list = []
 
@@ -278,7 +278,7 @@ class RaycastingOOP(arcade.Window):
         # print(f'({self.posX}, {self.posY}) at time {self.time}')
 
         # arcade.start_render()
-        for x in range(0, SCREEN_WIDTH, self.render_resolution):
+        for x in range(0, SCREEN_WIDTH+1, self.render_resolution):
             # calculate the ray position and direction
             cameraX = (2 * x / SCREEN_WIDTH) - 1
             if cameraX > 1 or cameraX < -1:
