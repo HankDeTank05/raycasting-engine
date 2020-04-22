@@ -1,5 +1,6 @@
 import math
 import sys
+import numpy
 
 import calculations as calc
 import arcade
