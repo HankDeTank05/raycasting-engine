@@ -16,10 +16,12 @@ ROTATION_SPEED = 2.0
 FLOOR_COLOR = arcade.color.LAWN_GREEN
 CEILING_COLOR = arcade.color.DEEP_SKY_BLUE
 
+TEXT_COLOR = arcade.color.BLACK
+
 RENDER_RESOLUTION = 50
 TARGET_FPS = 15
 TARGET_PLUS_MINUS = 2
-mapScale = 1
+MAP_SCALE = 1
 
 
 class RaycastingOOP(arcade.Window):
@@ -29,14 +31,14 @@ class RaycastingOOP(arcade.Window):
 
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
-        self.minFPS = None
-        self.renderResolution = None
-        self.maxFPS = None
-        self.targetFPS = None
-        self.mapWidth = None
-        self.mapHeight = None
+        self.min_fps = None
+        self.render_resolution = None
+        self.max_fps = None
+        self.target_fps = None
+        self.map_width = None
+        self.map_height = None
 
-        self.worldMap = None
+        self.world_map = None
 
         self.posX = None
         self.posY = None
@@ -64,8 +66,8 @@ class RaycastingOOP(arcade.Window):
 
         self.frameTime = None
 
-        self.moveSpeed = None
-        self.rotationSpeed = None
+        self.move_speed = None
+        self.rotation_speed = None
 
         self.shape_list = None
 
@@ -74,10 +76,10 @@ class RaycastingOOP(arcade.Window):
         self.dark_color_list = None
 
     def setup(self):
-        self.mapWidth = 24
-        self.mapHeight = 24
+        self.map_width = 24
+        self.map_height = 24
 
-        self.worldMap = [
+        self.world_map = [
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7, 7, 7],
             [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 7],
             [4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7],
@@ -106,13 +108,13 @@ class RaycastingOOP(arcade.Window):
 
         '''self.point_list = []
 
-        for y in range(len(self.worldMap)):
-            for x in range(len(self.worldMap[y])):
-                if self.worldMap[x][y] != 0:
+        for y in range(len(self.world_map)):
+            for x in range(len(self.world_map[y])):
+                if self.world_map[x][y] != 0:
                     point = [x, y]
                     while True:
                         try:
-                            self.point_list[self.worldMap[x][y]].append(point)
+                            self.point_list[self.world_map[x][y]].append(point)
                             break
                         except IndexError:
                             self.point_list.append([])'''
@@ -144,7 +146,7 @@ class RaycastingOOP(arcade.Window):
         self.time = 0
 
         # start with the default target FPS
-        self.targetFPS = TARGET_FPS
+        self.target_fps = TARGET_FPS
 
         # initialize an empty ShapeElementList to store the line objects in
         self.shape_list = arcade.ShapeElementList()
@@ -170,7 +172,7 @@ class RaycastingOOP(arcade.Window):
             arcade.color.DARK_PINK
         ]
 
-        self.renderResolution = RENDER_RESOLUTION
+        self.render_resolution = RENDER_RESOLUTION
 
     def on_draw(self):
         arcade.start_render()
@@ -186,74 +188,74 @@ class RaycastingOOP(arcade.Window):
         # draw all shapes in the list
         self.shape_list.draw()
 
-        # draw the targetFPS text
-        arcade.draw_text(f"Target FPS:\n- <==Q {self.targetFPS} E==> +",
+        # draw the target_fps text
+        arcade.draw_text(f"Target FPS:\n- <==Q {self.target_fps} E==> +",
                          int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT * 0.1),
-                         arcade.color.ORANGE)
+                         TEXT_COLOR)
 
         # draw the FPS indicator text
         arcade.draw_text(f'FPS: {1.0 / self.frameTime}',
-                         SCREEN_WIDTH // 2 - 30, int(SCREEN_HEIGHT * 0.9),
-                         arcade.color.SAPPHIRE_BLUE)
+                         int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT * 0.9),
+                         TEXT_COLOR)
 
         # draw minimap background
-        arcade.draw_lrtb_rectangle_filled(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
+        arcade.draw_lrtb_rectangle_filled(0 * MAP_SCALE, 24 * MAP_SCALE, 24 * MAP_SCALE, 0 * MAP_SCALE,
                                           arcade.color.BLACK)
 
         # draw minimap outer walls
-        arcade.draw_lrtb_rectangle_outline(0 * mapScale, 24 * mapScale, 24 * mapScale, 0 * mapScale,
+        arcade.draw_lrtb_rectangle_outline(0 * MAP_SCALE, 24 * MAP_SCALE, 24 * MAP_SCALE, 0 * MAP_SCALE,
                                            arcade.color.RED,
-                                           mapScale)
+                                           MAP_SCALE)
 
         # draw the player location indicator
-        arcade.draw_point((self.posX) * mapScale, (24 - self.posY) * mapScale,
+        arcade.draw_point((self.posX) * MAP_SCALE, (24 - self.posY) * MAP_SCALE,
                           arcade.color.ORANGE,
-                          mapScale)
+                          MAP_SCALE)
 
-        # arcade.draw_line(8*mapScale,1*mapScale,1*mapScale,1*mapScale,arcade.color.WHITE,mapScale)
-        # arcade.draw_line(1*mapScale,1*mapScale,1*mapScale,7*mapScale,arcade.color.WHITE,mapScale)
+        # arcade.draw_line(8*MAP_SCALE,1*MAP_SCALE,1*MAP_SCALE,1*MAP_SCALE,arcade.color.WHITE,MAP_SCALE)
+        # arcade.draw_line(1*MAP_SCALE,1*MAP_SCALE,1*MAP_SCALE,7*MAP_SCALE,arcade.color.WHITE,MAP_SCALE)
         '''arcade.draw_line_strip(
-            [[8 * mapScale, 1 * mapScale],
-             [1 * mapScale, 1 * mapScale],
-             [1 * mapScale, 7 * mapScale],
-             [3 * mapScale, 7 * mapScale],
-             [3 * mapScale, 6 * mapScale],
-             [3 * mapScale, 7 * mapScale],
-             [8 * mapScale, 7 * mapScale],
-             [8 * mapScale, 3 * mapScale],
-             [3 * mapScale, 3 * mapScale],
-             [3 * mapScale, 4 * mapScale]],
-            arcade.color.WHITE, mapScale)
+            [[8 * MAP_SCALE, 1 * MAP_SCALE],
+             [1 * MAP_SCALE, 1 * MAP_SCALE],
+             [1 * MAP_SCALE, 7 * MAP_SCALE],
+             [3 * MAP_SCALE, 7 * MAP_SCALE],
+             [3 * MAP_SCALE, 6 * MAP_SCALE],
+             [3 * MAP_SCALE, 7 * MAP_SCALE],
+             [8 * MAP_SCALE, 7 * MAP_SCALE],
+             [8 * MAP_SCALE, 3 * MAP_SCALE],
+             [3 * MAP_SCALE, 3 * MAP_SCALE],
+             [3 * MAP_SCALE, 4 * MAP_SCALE]],
+            arcade.color.WHITE, MAP_SCALE)
         arcade.draw_line_strip(
-            [[6 * mapScale, 20 * mapScale],
-             [11 * mapScale, 20 * mapScale],
-             [11 * mapScale, 15 * mapScale],
-             [6 * mapScale, 15 * mapScale],
-             [6 * mapScale, 20 * mapScale]],
+            [[6 * MAP_SCALE, 20 * MAP_SCALE],
+             [11 * MAP_SCALE, 20 * MAP_SCALE],
+             [11 * MAP_SCALE, 15 * MAP_SCALE],
+             [6 * MAP_SCALE, 15 * MAP_SCALE],
+             [6 * MAP_SCALE, 20 * MAP_SCALE]],
             arcade.color.GREEN,
-            mapScale
+            MAP_SCALE
         )
         arcade.draw_points(
-            [[16 * mapScale, 20 * mapScale],
-             [18 * mapScale, 20 * mapScale],
-             [20 * mapScale, 20 * mapScale],
-             [20 * mapScale, 18 * mapScale],
-             [20 * mapScale, 16 * mapScale],
-             [18 * mapScale, 16 * mapScale],
-             [16 * mapScale, 16 * mapScale],
-             [16 * mapScale, 18 * mapScale]],
+            [[16 * MAP_SCALE, 20 * MAP_SCALE],
+             [18 * MAP_SCALE, 20 * MAP_SCALE],
+             [20 * MAP_SCALE, 20 * MAP_SCALE],
+             [20 * MAP_SCALE, 18 * MAP_SCALE],
+             [20 * MAP_SCALE, 16 * MAP_SCALE],
+             [18 * MAP_SCALE, 16 * MAP_SCALE],
+             [16 * MAP_SCALE, 16 * MAP_SCALE],
+             [16 * MAP_SCALE, 18 * MAP_SCALE]],
             arcade.color.BLUE,
-            mapScale
+            MAP_SCALE
         )
 
-        arcade.draw_point(6 * mapScale, 5 * mapScale,
+        arcade.draw_point(6 * MAP_SCALE, 5 * MAP_SCALE,
                           arcade.color.YELLOW,
-                          mapScale)'''
+                          MAP_SCALE)'''
 
     def on_update(self, delta_time):
 
-        self.maxFPS = self.targetFPS + TARGET_PLUS_MINUS
-        self.minFPS = self.targetFPS - TARGET_PLUS_MINUS
+        self.max_fps = self.target_fps + TARGET_PLUS_MINUS
+        self.min_fps = self.target_fps - TARGET_PLUS_MINUS
 
         self.shape_list = arcade.ShapeElementList()
 
@@ -275,7 +277,7 @@ class RaycastingOOP(arcade.Window):
         # print(f'({self.posX}, {self.posY}) at time {self.time}')
 
         # arcade.start_render()
-        for x in range(0, SCREEN_WIDTH, self.renderResolution):
+        for x in range(0, SCREEN_WIDTH, self.render_resolution):
             # calculate the ray position and direction
             cameraX = (2 * x / SCREEN_WIDTH) - 1
             if cameraX > 1 or cameraX < -1:
@@ -348,7 +350,7 @@ class RaycastingOOP(arcade.Window):
                     mapY += stepY
                     side = 1
                 # check if ray has hit a wall
-                if self.worldMap[mapX][mapY] > 0:
+                if self.world_map[mapX][mapY] > 0:
                     hit = 1
 
             if side == 0:
@@ -368,16 +370,16 @@ class RaycastingOOP(arcade.Window):
 
             if side == 0:
                 try:
-                    color = self.color_list[self.worldMap[mapX][mapY]]
+                    color = self.color_list[self.world_map[mapX][mapY]]
                 except IndexError:
                     color = arcade.color.YELLOW
             elif side == 1:
                 try:
-                    color = self.dark_color_list[self.worldMap[mapX][mapY]]
+                    color = self.dark_color_list[self.world_map[mapX][mapY]]
                 except IndexError:
                     color = arcade.color.DARK_YELLOW
 
-            self.shape_list.append(arcade.create_line(x, drawStart, x, drawEnd, color, self.renderResolution))
+            self.shape_list.append(arcade.create_line(x, drawStart, x, drawEnd, color, self.render_resolution))
 
         self.oldTime = self.time
         self.time += delta_time
@@ -385,51 +387,51 @@ class RaycastingOOP(arcade.Window):
         self.frameTime = (self.time - self.oldTime)  # frameTime is the time this frame has taken in seconds
         # print(1.0 / self.frameTime)  # FPS counter
         FPS = 1 / self.frameTime
-        if FPS < self.minFPS:
-            self.renderResolution += 1
-        elif FPS > self.maxFPS:
-            self.renderResolution -= 1
-        self.moveSpeed = self.frameTime * MOVE_SPEED  # constant value in squares/second
-        self.rotationSpeed = self.frameTime * ROTATION_SPEED  # constant value in radians/second
+        if FPS < self.min_fps:
+            self.render_resolution += 1
+        elif FPS > self.max_fps:
+            self.render_resolution -= 1
+        self.move_speed = self.frameTime * MOVE_SPEED  # constant value in squares/second
+        self.rotation_speed = self.frameTime * ROTATION_SPEED  # constant value in radians/second
 
         if self.moveForward:
-            if not self.worldMap[int(self.posX + self.dirX * self.moveSpeed)][int(self.posY)]:
-                self.posX += self.dirX * self.moveSpeed
-            if not self.worldMap[int(self.posX)][int(self.posY + self.dirY * self.moveSpeed)]:
-                self.posY += self.dirY * self.moveSpeed
+            if not self.world_map[int(self.posX + self.dirX * self.move_speed)][int(self.posY)]:
+                self.posX += self.dirX * self.move_speed
+            if not self.world_map[int(self.posX)][int(self.posY + self.dirY * self.move_speed)]:
+                self.posY += self.dirY * self.move_speed
         elif self.moveBackward:
-            if not self.worldMap[int(self.posX - self.dirX * self.moveSpeed)][int(self.posY)]:
-                self.posX -= self.dirX * self.moveSpeed
-            if not self.worldMap[int(self.posX)][int(self.posY - self.dirY * self.moveSpeed)]:
-                self.posY -= self.dirY * self.moveSpeed
+            if not self.world_map[int(self.posX - self.dirX * self.move_speed)][int(self.posY)]:
+                self.posX -= self.dirX * self.move_speed
+            if not self.world_map[int(self.posX)][int(self.posY - self.dirY * self.move_speed)]:
+                self.posY -= self.dirY * self.move_speed
 
         if self.strafeLeft:
-            if not self.worldMap[int(self.posX - self.dirY * self.moveSpeed)][int(self.posY)]:
-                self.posX -= self.dirY * self.moveSpeed
-            if not self.worldMap[int(self.posX)][int(self.posY + self.dirX * self.moveSpeed)]:
-                self.posY += self.dirX * self.moveSpeed
+            if not self.world_map[int(self.posX - self.dirY * self.move_speed)][int(self.posY)]:
+                self.posX -= self.dirY * self.move_speed
+            if not self.world_map[int(self.posX)][int(self.posY + self.dirX * self.move_speed)]:
+                self.posY += self.dirX * self.move_speed
         elif self.strafeRight:
-            if not self.worldMap[int(self.posX + self.dirY * self.moveSpeed)][int(self.posY)]:
-                self.posX += self.dirY * self.moveSpeed
-            if not self.worldMap[int(self.posX)][int(self.posY - self.dirX * self.moveSpeed)]:
-                self.posY -= self.dirX * self.moveSpeed
+            if not self.world_map[int(self.posX + self.dirY * self.move_speed)][int(self.posY)]:
+                self.posX += self.dirY * self.move_speed
+            if not self.world_map[int(self.posX)][int(self.posY - self.dirX * self.move_speed)]:
+                self.posY -= self.dirX * self.move_speed
 
         if self.rotateLeft:
             # both camera direction and camera plane must be rotated
             oldDirX = self.dirX
-            self.dirX = self.dirX * math.cos(self.rotationSpeed) - self.dirY * math.sin(self.rotationSpeed)
-            self.dirY = oldDirX * math.sin(self.rotationSpeed) + self.dirY * math.cos(self.rotationSpeed)
+            self.dirX = self.dirX * math.cos(self.rotation_speed) - self.dirY * math.sin(self.rotation_speed)
+            self.dirY = oldDirX * math.sin(self.rotation_speed) + self.dirY * math.cos(self.rotation_speed)
             oldPlaneX = self.planeX
-            self.planeX = self.planeX * math.cos(self.rotationSpeed) - self.planeY * math.sin(self.rotationSpeed)
-            self.planeY = oldPlaneX * math.sin(self.rotationSpeed) + self.planeY * math.cos(self.rotationSpeed)
+            self.planeX = self.planeX * math.cos(self.rotation_speed) - self.planeY * math.sin(self.rotation_speed)
+            self.planeY = oldPlaneX * math.sin(self.rotation_speed) + self.planeY * math.cos(self.rotation_speed)
         elif self.rotateRight:
             # both camera direction and camera plane must be rotated
             oldDirX = self.dirX
-            self.dirX = self.dirX * math.cos(-self.rotationSpeed) - self.dirY * math.sin(-self.rotationSpeed)
-            self.dirY = oldDirX * math.sin(-self.rotationSpeed) + self.dirY * math.cos(-self.rotationSpeed)
+            self.dirX = self.dirX * math.cos(-self.rotation_speed) - self.dirY * math.sin(-self.rotation_speed)
+            self.dirY = oldDirX * math.sin(-self.rotation_speed) + self.dirY * math.cos(-self.rotation_speed)
             oldPlaneX = self.planeX
-            self.planeX = self.planeX * math.cos(-self.rotationSpeed) - self.planeY * math.sin(-self.rotationSpeed)
-            self.planeY = oldPlaneX * math.sin(-self.rotationSpeed) + self.planeY * math.cos(-self.rotationSpeed)
+            self.planeX = self.planeX * math.cos(-self.rotation_speed) - self.planeY * math.sin(-self.rotation_speed)
+            self.planeY = oldPlaneX * math.sin(-self.rotation_speed) + self.planeY * math.cos(-self.rotation_speed)
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W:
@@ -449,9 +451,9 @@ class RaycastingOOP(arcade.Window):
         if key == arcade.key.RIGHT:
             self.rotateRight = True
         if key == arcade.key.Q:
-            self.targetFPS -= 1
+            self.target_fps -= 1
         if key == arcade.key.E:
-            self.targetFPS += 1
+            self.target_fps += 1
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W:
