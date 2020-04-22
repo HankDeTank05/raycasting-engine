@@ -43,12 +43,15 @@ class RaycastingOOP(arcade.Window):
 
         self.posX = None
         self.posY = None
+        self.pos = None
 
         self.dirX = None
         self.dirY = None
+        self.dir = None
 
         self.planeX = None
         self.planeY = None
+        self.plane = None
 
         self.fov = None
 
@@ -75,6 +78,8 @@ class RaycastingOOP(arcade.Window):
         self.point_list = None
         self.color_list = None
         self.dark_color_list = None
+
+        self.rotation_matrix = None
 
     def setup(self):
         self.map_width = 24
@@ -123,17 +128,20 @@ class RaycastingOOP(arcade.Window):
         # initialize and declare position variables
         self.posX = 22
         self.posY = 12
+        self.pos = np.array([22,  12])
 
         # initialize and declare the look-direction variables
         self.dirX = -1.0
         self.dirY = 0.0
+        self.dir = np.array([-1.0, 0.0])
 
         # initialize and declare the
         self.planeX = 0
-        self.planeY = 1
+        self.planeY = 0.66
+        self.plane = np.array([0, 0.66])
 
-        self.drawStart = []
-        self.drawEnd = []
+        self.drawStart = np.empty(SCREEN_WIDTH)
+        self.drawEnd = np.empty(SCREEN_WIDTH)
 
         # initialize and declare movement boolean flags to false
         self.moveForward = False
@@ -284,80 +292,86 @@ class RaycastingOOP(arcade.Window):
             if cameraX > 1 or cameraX < -1:
                 print('cameraX is too big or too small!')
                 sys.exit()
-            rayDirX = self.dirX + self.planeX * cameraX
-            rayDirY = self.dirY + self.planeY * cameraX
+            #rayDirX = self.dirX + self.planeX * cameraX
+            #rayDirY = self.dirY + self.planeY * cameraX
+            rayDir = np.empty(2)
+            rayDir = self.dir + self.plane * cameraX
 
             # which box of the map we're in
-            mapX = int(self.posX)
-            mapY = int(self.posY)
+            #mapX = int(self.posX)
+            #mapY = int(self.posY)
+            map = np.array([int(self.pos[0]), int(self.pos[1])])
 
             # print(f'({mapX}, {mapY})')
 
             # length of ray from current position to the next x- or y-side
-            sideDistX = None
-            sideDistY = None
+            #sideDistX = None
+            #sideDistY = None
+            sideDist = np.empty(2)
 
             # length of the ray from one x- or y-side to the next x- or y-side
+            deltaDist = np.empty(2)
             try:
-                deltaDistX = abs(1 / rayDirX)
+                deltaDist[0] = abs(1 / rayDir[0] + 0.0000001)
             except ZeroDivisionError:
-                if rayDirY == 0:
-                    deltaDistX = 0
+                if rayDir[1] == 0:
+                    deltaDist[0] = 0
                 else:
-                    if rayDirX == 0:
-                        deltaDistX = 1
+                    if rayDir[0] == 0:
+                        deltaDist[0] = 1
                     else:
-                        deltaDistX = abs(1 / rayDirX)
+                        deltaDist[0] = abs(1 / rayDir[0])
             try:
-                deltaDistY = abs(1 / rayDirY)
+                deltaDist[1] = abs(1 / rayDir[1] + 0.0000001)
             except ZeroDivisionError:
-                if rayDirX == 0:
-                    deltaDistY = 0
+                if rayDir[0] == 0:
+                    deltaDist[1] = 0
                 else:
-                    if rayDirY == 0:
-                        deltaDistY = 1
+                    if rayDir[1] == 0:
+                        deltaDist[1] = 1
                     else:
-                        deltaDistY = abs(1 / rayDirY)
+                        deltaDist[1] = abs(1 / rayDir[1])
             perpWallDist = None
 
             # which direction to step in the x direction or y direction (either +1 or -1)
-            stepX = None
-            stepY = None
+            #stepX = None
+            #stepY = None
+            step = np.empty(2)
 
             hit = 0  # was there a wall hit?
             side = None  # was a North/South wall hit or an East/West wall hit?
-            if rayDirX < 0:
-                stepX = -1
-                sideDistX = (self.posX - mapX) * deltaDistX
+            if rayDir[0] < 0:
+                step[0] = -1
+                sideDist[0] = (self.pos[0] - map[0]) * deltaDist[0]
             else:
-                stepX = 1
-                sideDistX = (mapX + 1.0 - self.posX) * deltaDistX
+                step[0] = 1
+                sideDist[0] = (map[0] + 1.0 - self.pos[0]) * deltaDist[0]
 
-            if rayDirY < 0:
-                stepY = -1
-                sideDistY = (self.posY - mapY) * deltaDistY
+            if rayDir[1] < 0:
+                step[1] = -1
+                sideDist[1] = (self.pos[1] - map[1]) * deltaDist[1]
             else:
-                stepY = 1
-                sideDistY = (mapY + 1.0 - self.posY) * deltaDistY
+                step[1] = 1
+                sideDist[1] = (map[1] + 1.0 - self.pos[1]) * deltaDist[1]
 
             # was a wall hit? 1 = yes. 0 = no.
             while hit == 0:
-                if sideDistX < sideDistY:
-                    sideDistX += deltaDistX
-                    mapX += stepX
+                if sideDist[0] < sideDist[1]:
+                    sideDist[0] += deltaDist[0]
+                    map[0] += step[0]
                     side = 0
                 else:
-                    sideDistY += deltaDistY
-                    mapY += stepY
+                    sideDist[1] += deltaDist[1]
+                    map[1] += step[1]
                     side = 1
                 # check if ray has hit a wall
-                if self.world_map[mapX][mapY] > 0:
+                if self.world_map[map[0]][map[1]] > 0:
                     hit = 1
 
             if side == 0:
-                perpWallDist = (mapX - self.posX + (1 - stepX) / 2) / (rayDirX + 0.00000001)
+                perpWallDist = (map[0] - self.pos[0] + (1 - step[0]) / 2) / (rayDir[0] + 0.00000001)
             else:
-                perpWallDist = (mapY - self.posY + (1 - stepY) / 2) / (rayDirY + 0.00000001)
+                perpWallDist = (map[1] - self.pos[1] + (1 - step[1]) / 2) / (rayDir[1] + 0.00000001)
 
             lineHeight = int(SCREEN_HEIGHT / (perpWallDist + 0.00000001))
 
@@ -371,12 +385,12 @@ class RaycastingOOP(arcade.Window):
 
             if side == 0:
                 try:
-                    color = self.color_list[self.world_map[mapX][mapY]]
+                    color = self.color_list[self.world_map[map[0]][map[1]]]
                 except IndexError:
                     color = arcade.color.YELLOW
             elif side == 1:
                 try:
-                    color = self.dark_color_list[self.world_map[mapX][mapY]]
+                    color = self.dark_color_list[self.world_map[map[0]][map[1]]]
                 except IndexError:
                     color = arcade.color.DARK_YELLOW
 
@@ -395,44 +409,53 @@ class RaycastingOOP(arcade.Window):
         self.move_speed = self.frameTime * MOVE_SPEED  # constant value in squares/second
         self.rotation_speed = self.frameTime * ROTATION_SPEED  # constant value in radians/second
 
+        self.rotation_matrix = np.array([[math.cos(self.rotation_speed), -math.sin(self.rotation_speed)],
+                                         [math.sin(self.rotation_speed),  math.cos(self.rotation_speed)]])
+        self.rotation_matrix_neg = np.array([[math.cos(-self.rotation_speed), -math.sin(-self.rotation_speed)],
+                                             [math.sin(-self.rotation_speed),  math.cos(-self.rotation_speed)]])
+
         if self.moveForward:
-            if not self.world_map[int(self.posX + self.dirX * self.move_speed)][int(self.posY)]:
-                self.posX += self.dirX * self.move_speed
-            if not self.world_map[int(self.posX)][int(self.posY + self.dirY * self.move_speed)]:
-                self.posY += self.dirY * self.move_speed
+            if not self.world_map[int(self.pos[0] + self.dir[0] * self.move_speed)][int(self.pos[1])]:
+                self.pos[0] += self.dir[0] * self.move_speed
+            if not self.world_map[int(self.pos[0])][int(self.pos[1] + self.dir[1] * self.move_speed)]:
+                self.pos[1] += self.dir[1] * self.move_speed
         elif self.moveBackward:
-            if not self.world_map[int(self.posX - self.dirX * self.move_speed)][int(self.posY)]:
-                self.posX -= self.dirX * self.move_speed
-            if not self.world_map[int(self.posX)][int(self.posY - self.dirY * self.move_speed)]:
-                self.posY -= self.dirY * self.move_speed
+            if not self.world_map[int(self.pos[0] - self.dir[0] * self.move_speed)][int(self.pos[1])]:
+                self.pos[0] -= self.dir[0] * self.move_speed
+            if not self.world_map[int(self.pos[0])][int(self.pos[1] - self.dir[1] * self.move_speed)]:
+                self.pos[1] -= self.dir[1] * self.move_speed
 
         if self.strafeLeft:
-            if not self.world_map[int(self.posX - self.dirY * self.move_speed)][int(self.posY)]:
-                self.posX -= self.dirY * self.move_speed
-            if not self.world_map[int(self.posX)][int(self.posY + self.dirX * self.move_speed)]:
-                self.posY += self.dirX * self.move_speed
+            if not self.world_map[int(self.pos[0] - self.dir[1] * self.move_speed)][int(self.pos[1])]:
+                self.pos[0] -= self.dir[1] * self.move_speed
+            if not self.world_map[int(self.pos[0])][int(self.pos[1] + self.dir[0] * self.move_speed)]:
+                self.pos[1] += self.dir[0] * self.move_speed
         elif self.strafeRight:
-            if not self.world_map[int(self.posX + self.dirY * self.move_speed)][int(self.posY)]:
-                self.posX += self.dirY * self.move_speed
-            if not self.world_map[int(self.posX)][int(self.posY - self.dirX * self.move_speed)]:
-                self.posY -= self.dirX * self.move_speed
+            if not self.world_map[int(self.pos[0] + self.dir[1] * self.move_speed)][int(self.pos[1])]:
+                self.pos[0] += self.dir[1] * self.move_speed
+            if not self.world_map[int(self.pos[0])][int(self.pos[1] - self.dir[0] * self.move_speed)]:
+                self.pos[1] -= self.dir[0] * self.move_speed
 
         if self.rotateLeft:
             # both camera direction and camera plane must be rotated
-            oldDirX = self.dirX
-            self.dirX = self.dirX * math.cos(self.rotation_speed) - self.dirY * math.sin(self.rotation_speed)
-            self.dirY = oldDirX * math.sin(self.rotation_speed) + self.dirY * math.cos(self.rotation_speed)
-            oldPlaneX = self.planeX
-            self.planeX = self.planeX * math.cos(self.rotation_speed) - self.planeY * math.sin(self.rotation_speed)
-            self.planeY = oldPlaneX * math.sin(self.rotation_speed) + self.planeY * math.cos(self.rotation_speed)
+            oldDirX = self.dir[0]
+            self.dir[0] = self.dir[0] * math.cos(self.rotation_speed) - self.dir[1] * math.sin(self.rotation_speed)
+            self.dir[1] = oldDirX * math.sin(self.rotation_speed) + self.dir[1] * math.cos(self.rotation_speed)
+            #self.dir*self.rotation_matrix
+            oldPlaneX = self.plane[0]
+            self.plane[0] = self.plane[0] * math.cos(self.rotation_speed) - self.plane[1] * math.sin(self.rotation_speed)
+            self.plane[1] = oldPlaneX * math.sin(self.rotation_speed) + self.plane[1] * math.cos(self.rotation_speed)
+            #self.plane*self.rotation_matrix
         elif self.rotateRight:
             # both camera direction and camera plane must be rotated
-            oldDirX = self.dirX
-            self.dirX = self.dirX * math.cos(-self.rotation_speed) - self.dirY * math.sin(-self.rotation_speed)
-            self.dirY = oldDirX * math.sin(-self.rotation_speed) + self.dirY * math.cos(-self.rotation_speed)
-            oldPlaneX = self.planeX
-            self.planeX = self.planeX * math.cos(-self.rotation_speed) - self.planeY * math.sin(-self.rotation_speed)
-            self.planeY = oldPlaneX * math.sin(-self.rotation_speed) + self.planeY * math.cos(-self.rotation_speed)
+            oldDirX = self.dir[0]
+            self.dir[0] = self.dir[0] * math.cos(-self.rotation_speed) - self.dir[1] * math.sin(-self.rotation_speed)
+            self.dir[1] = oldDirX * math.sin(-self.rotation_speed) + self.dir[1] * math.cos(-self.rotation_speed)
+            #self.dir*self.rotation_matrix_neg
+            oldPlaneX = self.plane[0]
+            self.plane[0] = self.plane[0] * math.cos(-self.rotation_speed) - self.plane[1] * math.sin(-self.rotation_speed)
+            self.plane[1] = oldPlaneX * math.sin(-self.rotation_speed) + self.plane[1] * math.cos(-self.rotation_speed)
+            #self.plane*self.rotation_matrix_neg
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W:
