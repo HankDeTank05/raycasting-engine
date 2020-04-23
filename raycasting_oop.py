@@ -1,12 +1,13 @@
 import math
 import sys
 import numpy as np
-
-import calculations as calc
 import arcade
+import random
+import os
+import timeit
 
-SCREEN_WIDTH = 480
-SCREEN_HEIGHT = 360
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 
 TEX_WIDTH = 64
 TEX_HEIGHT = 64
@@ -75,6 +76,12 @@ class RaycastingOOP(arcade.Window):
         self.point_list = None
         self.color_list = None
         self.dark_color_list = None
+
+        self.processing_time = 0
+        self.draw_time = 0
+        self.frame_count = 0
+        self.fps_start_timer = None
+        self.fps = None
 
     def setup(self):
         self.map_width = 24
@@ -176,6 +183,17 @@ class RaycastingOOP(arcade.Window):
         self.render_resolution = RENDER_RESOLUTION
 
     def on_draw(self):
+
+        # start timing how long this takes
+        draw_start_time = timeit.default_timer()
+
+        if self.frame_count % 60 == 0:
+            if self.fps_start_timer is not None:
+                total_time = timeit.default_timer() - self.fps_start_timer
+                self.fps = 60 / total_time
+            self.fps_start_timer = timeit.default_timer()
+        self.frame_count += 1
+
         arcade.start_render()
 
         '''for color_index in range(len(self.point_list)):
@@ -195,9 +213,9 @@ class RaycastingOOP(arcade.Window):
                          TEXT_COLOR)
 
         # draw the FPS indicator text
-        arcade.draw_text(f'FPS: {1.0 / self.frameTime}',
+        '''arcade.draw_text(f'FPS: {1.0 / self.frameTime}',
                          int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT * 0.9),
-                         TEXT_COLOR)
+                         TEXT_COLOR)'''
 
         # draw minimap background
         arcade.draw_lrtb_rectangle_filled(0 * MAP_SCALE, 24 * MAP_SCALE, 24 * MAP_SCALE, 0 * MAP_SCALE,
@@ -253,6 +271,19 @@ class RaycastingOOP(arcade.Window):
                           arcade.color.YELLOW,
                           MAP_SCALE)'''
 
+        # display timings
+        output = f'Processing time: {self.processing_time:.3f}'
+        arcade.draw_text(output, 20, SCREEN_HEIGHT - 20, arcade.color.BLACK, 16)
+
+        output = f'Drawing time: {self.draw_time:.3f}'
+        arcade.draw_text(output, 20, SCREEN_HEIGHT - 40, arcade.color.BLACK, 16)
+
+        if self.fps is not None:
+            output = f'FPS: {self.fps:.0f}'
+            arcade.draw_text(output, 20, SCREEN_HEIGHT - 60, arcade.color.BLACK, 16)
+
+        self.draw_time = timeit.default_timer() - draw_start_time
+
     def on_update(self, delta_time):
 
         self.max_fps = self.target_fps + TARGET_PLUS_MINUS
@@ -260,7 +291,7 @@ class RaycastingOOP(arcade.Window):
 
         self.shape_list = arcade.ShapeElementList()
 
-        floor = arcade.create_rectangle(
+        '''floor = arcade.create_rectangle(
             SCREEN_WIDTH // 2, int(SCREEN_HEIGHT * 0.25),
             SCREEN_WIDTH, SCREEN_HEIGHT // 2,
             FLOOR_COLOR
@@ -273,12 +304,15 @@ class RaycastingOOP(arcade.Window):
         )
 
         self.shape_list.append(floor)
-        self.shape_list.append(ceiling)
+        self.shape_list.append(ceiling)'''
+
+        point_list = []
+        color_list = []
 
         # print(f'({self.posX}, {self.posY}) at time {self.time}')
 
         # arcade.start_render()
-        for x in range(0, SCREEN_WIDTH+1, self.render_resolution):
+        for x in range(0, SCREEN_WIDTH+1):
             # calculate the ray position and direction
             cameraX = (2 * x / SCREEN_WIDTH) - 1
             if cameraX > 1 or cameraX < -1:
@@ -380,7 +414,16 @@ class RaycastingOOP(arcade.Window):
                 except IndexError:
                     color = arcade.color.DARK_YELLOW
 
-            self.shape_list.append(arcade.create_line(x, drawStart, x, drawEnd, color, self.render_resolution))
+            draw_start_pos = (x, drawStart)
+            draw_end_pos = (x, drawEnd)
+            point_list.append(draw_end_pos)
+            point_list.append(draw_start_pos)
+            for i in range(2):
+                color_list.append(color)
+
+            #self.shape_list.append(arcade.create_line(x, drawStart, x, drawEnd, color, self.render_resolution))
+        shape = arcade.create_line_generic_with_colors(point_list, color_list, 1, 1)
+        self.shape_list.append(shape)
 
         self.oldTime = self.time
         self.time += delta_time
