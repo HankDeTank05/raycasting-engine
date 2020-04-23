@@ -2,6 +2,7 @@ import math
 import sys
 import numpy as np
 import arcade
+from arcade import Matrix3x3
 import random
 import os
 import timeit
@@ -82,6 +83,12 @@ class RaycastingOOP(arcade.Window):
         self.frame_count = 0
         self.fps_start_timer = None
         self.fps = None
+
+        #self.buffer[SCREEN_HEIGHT][SCREEN_WIDTH] = None  # y-coordinate first because it works per scanline ...?
+        self.texture = None
+        self.alt_texture = None
+
+        self.xy_square = None
 
     def setup(self):
         self.map_width = 24
@@ -182,6 +189,14 @@ class RaycastingOOP(arcade.Window):
 
         self.render_resolution = RENDER_RESOLUTION
 
+        self.texture = 'bricks.png'
+        self.alt_texture = 'darker_bricks.png'
+
+        self.xy_square = arcade.load_texture('bricks.png')
+
+        self.set_exclusive_mouse(exclusive=True)
+        self.set_exclusive_keyboard(exclusive=True)
+
     def on_draw(self):
 
         # start timing how long this takes
@@ -195,6 +210,14 @@ class RaycastingOOP(arcade.Window):
         self.frame_count += 1
 
         arcade.start_render()
+
+        '''for i, pair in enumerate([
+            ['shear(0.3, 0.1)', Matrix3x3().shear(0.3, 0.1)]
+        ]):
+            x = 80 + 180 * (i % 4)
+            y = 420 - (i // 4) * 320
+            arcade.draw_text(pair[0], x, y - 20 - pair[0].count('\n') * 10, arcade.color.WHITE, 10)'''
+            #self.xy_sqare.draw_transformed(x, y, 100, 100, 0, 255, pair[1])
 
         '''for color_index in range(len(self.point_list)):
             self.shape_list.append(
@@ -403,6 +426,25 @@ class RaycastingOOP(arcade.Window):
             if drawEnd >= SCREEN_HEIGHT:
                 drawEnd = SCREEN_HEIGHT - 1
 
+            # texturing calculations
+            tex_num = self.world_map[mapX][mapY] - 1  # 1 subtracted from it so that texture 0 acn be used!
+
+            # calculate value of wallX
+            wallX = None  # where exactly the wall was hit
+            if side == 0:
+                wallX = self.posY + perpWallDist * rayDirY
+            else:
+                wallX = self.posX + perpWallDist * rayDirX
+
+            wallX -= math.floor(wallX)
+
+            # x coordinate on the texture
+            texX = int(wallX * TEX_WIDTH)
+            if side == 0 and rayDirX > 0:
+                texX = TEX_WIDTH - texX - 1
+            if side == 1 and rayDirY < 0:
+                texX = TEX_WIDTH - texX - 1
+
             if side == 0:
                 try:
                     color = self.color_list[self.world_map[mapX][mapY]]
@@ -413,6 +455,18 @@ class RaycastingOOP(arcade.Window):
                     color = self.dark_color_list[self.world_map[mapX][mapY]]
                 except IndexError:
                     color = arcade.color.DARK_YELLOW
+
+            '''# how much to increase the texture coordinate per screen pixel
+            step = 1.0 * TEX_HEIGHT / lineHeight
+            tex_pos = (drawStart - SCREEN_HEIGHT / 2 + lineHeight / 2) * step
+            for y in range(drawStart, drawEnd):
+                texY = int(tex_pos)
+                tex_pos += step
+
+                if side == 1:
+                    tex_to_use = self.alt_texture
+                else:
+                    tex_to_use = self.texture'''
 
             draw_start_pos = (x, drawStart)
             draw_end_pos = (x, drawEnd)
@@ -498,6 +552,8 @@ class RaycastingOOP(arcade.Window):
             self.target_fps -= 1
         if key == arcade.key.E:
             self.target_fps += 1
+        if key == arcade.key.ESCAPE:
+            sys.exit()
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W:
