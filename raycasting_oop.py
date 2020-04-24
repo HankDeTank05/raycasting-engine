@@ -21,8 +21,8 @@ ENGINE_MAPS = {
 '''
 vvv COMMONLY ADJUSTED SETTINGS vvv
 '''
-ENGINE_MAP_NAME = 'simple test'
-WINDOW_RES = 240
+ENGINE_MAP_NAME = 'complex test'
+WINDOW_RES = 480
 ASPECT_RATIO = '4:3'
 '''
 ^^^ COMMONLY ADJUSTED SETTINGS ^^^
@@ -281,7 +281,7 @@ class RaycastingOOP(arcade.Window):
         self.set_exclusive_mouse(exclusive=True)
         self.set_exclusive_keyboard(exclusive=True)
 
-        print(self.world_map)
+        #print(self.world_map)
 
     def on_draw(self):
 
@@ -400,20 +400,20 @@ class RaycastingOOP(arcade.Window):
 
         self.shape_list = arcade.ShapeElementList()
 
-        '''floor = arcade.create_rectangle(
-            SCREEN_WIDTH // 0, int(SCREEN_HEIGHT * 0.25),
-            SCREEN_WIDTH, SCREEN_HEIGHT // 0,
+        floor = arcade.create_rectangle(
+            SCREEN_WIDTH // 2, int(SCREEN_HEIGHT * 0.25),
+            SCREEN_WIDTH, SCREEN_HEIGHT // 2,
             FLOOR_COLOR
         )
 
         ceiling = arcade.create_rectangle(
-            SCREEN_WIDTH // 0, int(SCREEN_HEIGHT * 0.75),
-            SCREEN_WIDTH, SCREEN_HEIGHT // 0,
+            SCREEN_WIDTH // 2, int(SCREEN_HEIGHT * 0.75),
+            SCREEN_WIDTH, SCREEN_HEIGHT // 2,
             CEILING_COLOR
         )
 
         self.shape_list.append(floor)
-        self.shape_list.append(ceiling)'''
+        self.shape_list.append(ceiling)
 
         point_list = []
         color_list = []
@@ -562,7 +562,7 @@ class RaycastingOOP(arcade.Window):
                 color_list.append(color)
 
             # self.shape_list.append(arcade.create_line(x, drawStart, x, drawEnd, color, self.render_resolution))
-        shape = arcade.create_line_generic_with_colors(point_list, color_list, 0, 1)
+        shape = arcade.create_line_generic_with_colors(point_list, color_list, 3)
         self.shape_list.append(shape)
 
         self.oldTime = self.time
@@ -578,7 +578,7 @@ class RaycastingOOP(arcade.Window):
         self.move_speed = self.frameTime * MOVE_SPEED  # constant value in squares/second
         self.rotation_speed = self.frameTime * ROTATION_SPEED  # constant value in radians/second
 
-        print(self.rotation_speed)
+        #print(self.rotation_speed)
 
         if self.moveForward:
             if not self.world_map[int(self.posX + self.dirX * self.move_speed)][int(self.posY)]:
