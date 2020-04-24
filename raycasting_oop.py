@@ -7,8 +7,30 @@ import random
 import os
 import timeit
 
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+
+ASPECT_RATIOS = {
+    '4:3': 4/3,
+    '16:9': 16/9,
+    '3:2': 3/2
+}
+ENGINE_MAPS = {
+    'simple test': 0,
+    'complex test': 1,
+    'wolf3d e1m1': 2
+}
+'''
+vvv COMMONLY ADJUSTED SETTINGS vvv
+'''
+ENGINE_MAP_NAME = 'simple test'
+WINDOW_RES = 240
+ASPECT_RATIO = '4:3'
+'''
+^^^ COMMONLY ADJUSTED SETTINGS ^^^
+'''
+
+ENGINE_MAPS_INDEX = ENGINE_MAPS[ENGINE_MAP_NAME]
+SCREEN_HEIGHT = WINDOW_RES
+SCREEN_WIDTH = int(ASPECT_RATIOS[ASPECT_RATIO] * SCREEN_HEIGHT)
 
 TEX_WIDTH = 64
 TEX_HEIGHT = 64
@@ -77,9 +99,10 @@ MAPS = [np.array([  # simple example map
     [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
     [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
 ]), np.array([  # Wolfenstein 3D level 1
-
+    [3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3],
+    [3, 3, 0, 0, 3, 0, 3, 0, 0, 3, 0, 0, 0, 3, 0, 3, 3],
+    [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
 ])]
-
 
 # Wolfenstein 3D level 1
 
@@ -89,16 +112,16 @@ class RaycastingOOP(arcade.Window):
     Main applicaiton class
     """
 
-    def __init__(self, width, height, title):
+    def __init__(self, width, height, title, map):
         super().__init__(width, height, title)
-        self.min_fps = None
-        self.render_resolution = None
-        self.max_fps = None
-        self.target_fps = None
+        self.min_fps = None  # not in use at the moment
+        self.render_resolution = None  # not in use at the moment
+        self.max_fps = None  # not in use at the moment
+        self.target_fps = None  # not in use at the moment
         self.map_width = None
         self.map_height = None
 
-        self.world_map = None
+        self.world_map = map
 
         self.posX = None
         self.posY = None
@@ -148,9 +171,12 @@ class RaycastingOOP(arcade.Window):
         self.xy_square = None
 
     def setup(self):
-        self.map_width = 24
-        self.map_height = 24
+        self.map_width = len(self.world_map)
+        self.map_height = 0
+        for row in self.world_map:
+            self.map_height = max(self.map_height, len(row))
 
+        '''
         self.world_map = np.array([
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -177,6 +203,7 @@ class RaycastingOOP(arcade.Window):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
         ])
+        '''
 
         '''self.point_list = []
 
@@ -253,6 +280,8 @@ class RaycastingOOP(arcade.Window):
 
         self.set_exclusive_mouse(exclusive=True)
         self.set_exclusive_keyboard(exclusive=True)
+
+        print(self.world_map)
 
     def on_draw(self):
 
@@ -549,6 +578,8 @@ class RaycastingOOP(arcade.Window):
         self.move_speed = self.frameTime * MOVE_SPEED  # constant value in squares/second
         self.rotation_speed = self.frameTime * ROTATION_SPEED  # constant value in radians/second
 
+        print(self.rotation_speed)
+
         if self.moveForward:
             if not self.world_map[int(self.posX + self.dirX * self.move_speed)][int(self.posY)]:
                 self.posX += self.dirX * self.move_speed
@@ -631,7 +662,7 @@ class RaycastingOOP(arcade.Window):
 
 
 def main():
-    game = RaycastingOOP(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting in Python")
+    game = RaycastingOOP(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting in Python", MAPS[ENGINE_MAPS_INDEX])
     game.setup()
 
     arcade.run()
