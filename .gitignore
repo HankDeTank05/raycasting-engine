@@ -1,0 +1,3 @@
+*.py[cod] # will match .pyc, .pyo and .pyd files.
+__pycache__/ # exclude the whole folder
+venv/
