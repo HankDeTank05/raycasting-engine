@@ -21,7 +21,7 @@ ENGINE_MAPS = {
 '''
 vvv COMMONLY ADJUSTED SETTINGS vvv
 '''
-ENGINE_MAP_NAME = 'complex test'
+ENGINE_MAP_NAME = 'simple test'
 WINDOW_RES = 480
 ASPECT_RATIO = '4:3'
 '''
@@ -38,6 +38,21 @@ TEX_HEIGHT = 64
 MOVE_SPEED = 5.0
 ROTATION_SPEED = 2.0
 
+COLOR_SCHEMES = {
+    'simple test': {
+        'floor': arcade.color.BLACK,
+        'ceiling': arcade.color.BLACK,
+        '1': [arcade.color.RED, arcade.color.DARK_RED],
+        '2': [arcade.color.GREEN, arcade.color.DARK_GREEN],
+        '3': [arcade.color.BLUE, arcade.color.DARK_BLUE],
+        '4': [arcade.color.WHITE, arcade.color.GRAY],
+        '5': [arcade.color.YELLOW, arcade.color.DARK_YELLOW]
+    },
+    'complex test':{
+        'floor': arcade.color.LAWN_GREEN,
+        'ceiling': arcade.color.DEEP_SKY_BLUE
+    }
+}
 FLOOR_COLOR = arcade.color.LAWN_GREEN
 CEILING_COLOR = arcade.color.DEEP_SKY_BLUE
 
