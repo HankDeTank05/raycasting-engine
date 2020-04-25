@@ -7,11 +7,10 @@ import random
 import os
 import timeit
 
-
 ASPECT_RATIOS = {
-    '4:3': 4/3,
-    '16:9': 16/9,
-    '3:2': 3/2
+    '4:3': 4 / 3,
+    '16:9': 16 / 9,
+    '3:2': 3 / 2
 }
 ENGINE_MAPS = {
     'simple test': 0,
@@ -48,7 +47,7 @@ COLOR_SCHEMES = {
         '4': [arcade.color.WHITE, arcade.color.GRAY],
         '5': [arcade.color.YELLOW, arcade.color.DARK_YELLOW]
     },
-    'complex test':{
+    'complex test': {
         'floor': arcade.color.LAWN_GREEN,
         'ceiling': arcade.color.DEEP_SKY_BLUE
     }
@@ -118,6 +117,7 @@ MAPS = [np.array([  # simple example map
     [3, 3, 0, 0, 3, 0, 3, 0, 0, 3, 0, 0, 0, 3, 0, 3, 3],
     [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
 ])]
+
 
 # Wolfenstein 3D level 1
 
@@ -296,7 +296,7 @@ class RaycastingOOP(arcade.Window):
         self.set_exclusive_mouse(exclusive=True)
         self.set_exclusive_keyboard(exclusive=True)
 
-        #print(self.world_map)
+        # print(self.world_map)
 
     def on_draw(self):
 
@@ -593,7 +593,7 @@ class RaycastingOOP(arcade.Window):
         self.move_speed = self.frameTime * MOVE_SPEED  # constant value in squares/second
         self.rotation_speed = self.frameTime * ROTATION_SPEED  # constant value in radians/second
 
-        #print(self.rotation_speed)
+        # print(self.rotation_speed)
 
         if self.moveForward:
             if not self.world_map[int(self.posX + self.dirX * self.move_speed)][int(self.posY)]:
