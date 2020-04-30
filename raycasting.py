@@ -9,6 +9,8 @@ SCREEN_HEIGHT = 720
 MOVE_SPEED = 5.0
 ROTATION_SPEED = 1.0
 
+MOTION_PERSISTENCE = 3
+
 
 class RaycastingEngine(arcade.Window):
     """
@@ -307,7 +309,7 @@ class RaycastingEngine(arcade.Window):
             for i in range(2):
                 color_list.append(color)
 
-        shape = arcade.create_line_generic_with_colors(point_list, color_list, 1)
+        shape = arcade.create_line_generic_with_colors(point_list, color_list, 3)
         self.shape_list.append(shape)
 
         self.old_time = self.time
@@ -376,12 +378,12 @@ class RaycastingEngine(arcade.Window):
         arcade.start_render()
 
         # draw all the shapes in the list
-        '''if len(self.last_frame) > 10:
-            for frame in range(10):
-                self.last_frame[len(self.last_frame) - frame - 1].draw()'''
         self.shape_list.draw()
+        if len(self.last_frame) > MOTION_PERSISTENCE:
+            for frame in range(MOTION_PERSISTENCE):
+                self.last_frame[len(self.last_frame) - frame - 1].draw()
 
-        '''self.last_frame.append(self.shape_list)'''
+        self.last_frame.append(self.shape_list)
 
         """
         ********************************
