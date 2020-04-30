@@ -1,27 +1,34 @@
-class WorldMap:
+import numpy as np
 
-    def __init__(self, size_x, size_y):
+
+class Map:
+    """
+    A class representing the world map the player will walk around in
+    """
+
+    def __init__(self, width: int, height: int):
+        # ensure the width and height are odd integers
+        if width % 2 == 0:
+            width += 1
+        self.width = width
+        if height % 2 == 0:
+            height += 1
+        self.height = height
+
+        # create the map, with border walls (1) on the edges
         self.map = []
-        for y in range(size_y):
+
+        for row in range(self.height):
             self.map.append([])
-            for x in range(size_x):
-                self.map[y].append([])
-        self.width = size_x
-        self.height = size_y
+            for column in range(self.width):
+                if row == 0 or column == 0 or row == self.height-1 or column == self.width-1:
+                    self.map[row].append(1)
+                else:
+                    self.map[row].append(0)
 
-    def visualize(self):
-        for y in range(len(self.map)):
-            row = ''
-            for x in range(len(self.map[y])):
-                row += f'{x},{self.height-y-1}\t'
-            print(row)
-            print()
+    def __repr__(self):
+        output = ''
+        for row in range(len(self.map)):
+            output += f'\n{self.map[row]}'
+        return output
 
-    def erase_and_populate_manually(self):
-        for y in range(len(self.map)):
-            for x in range(len(self.map[y])):
-                if len(self.map[y][x])
-
-if __name__ == "__main__":
-    testmap = WorldMap(5, 5)
-    testmap.visualize()
