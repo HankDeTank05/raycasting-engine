@@ -15,8 +15,16 @@ class RaycastingEngine(arcade.Window):
     This class creates an arcade window subclass, RaycastingEngine, meant for first-person games
     """
 
-    def __init__(self, width, height, title):
-        super().__init__(width, height, title)
+    def __init__(self, width, height, title, fullscreen=True):
+        super().__init__(width, height, title, fullscreen=fullscreen)
+
+        # set the window to fullscreen by default
+
+        width, height = self.get_size()
+        self.set_viewport(0, width, 0, height)
+
+        # save the window size so we can reference it later
+        self.screen_width, self.screen_height = self.get_size()
 
         # level map
         self.map = None
@@ -38,6 +46,10 @@ class RaycastingEngine(arcade.Window):
         self.strafe_right = None
         self.rotate_left = None
         self.rotate_right = None
+
+        self.mouse_look = None
+        self.last_x = None
+        self.last_y = None  # currently no implementation for this, just a placeholder
 
         # performance statistics
         self.time = None
@@ -91,6 +103,10 @@ class RaycastingEngine(arcade.Window):
         self.rotate_left = False
         self.rotate_right = False
 
+        self.mouse_look = False
+        self.last_x = self.screen_width // 2
+        self.last_y = self.screen_height // 2
+
         # performance statistics
         self.time = 0
         self.old_time = 0
@@ -126,7 +142,9 @@ class RaycastingEngine(arcade.Window):
 
         # hide the mouse by default
         if hide_mouse:
-            self.set_exclusive_mouse(exclusive=True)
+            self.set_mouse_visible(False)
+        else:
+            self.set_mouse_visible(True)
 
         # gameplay
         self.constant_move_speed = player_move_speed
@@ -138,14 +156,14 @@ class RaycastingEngine(arcade.Window):
 
         # set the floor and ceiling colors
         floor = arcade.create_rectangle(
-            SCREEN_WIDTH // 2, int(SCREEN_HEIGHT * 0.25),
-            SCREEN_WIDTH, SCREEN_HEIGHT // 2,
+            self.screen_width // 2, int(self.screen_height * 0.25),
+            self.screen_width, self.screen_height // 2,
             self.floor_color
         )
 
         ceiling = arcade.create_rectangle(
-            SCREEN_WIDTH // 2, int(SCREEN_HEIGHT * 0.75),
-            SCREEN_WIDTH, SCREEN_HEIGHT // 2,
+            self.screen_width // 2, int(self.screen_height * 0.75),
+            self.screen_width, self.screen_height // 2,
             self.ceiling_color
         )
 
@@ -158,9 +176,9 @@ class RaycastingEngine(arcade.Window):
         color_list = []
 
         # begin raycasting
-        for x in range(0, SCREEN_WIDTH + 1):
+        for x in range(0, self.screen_width + 1):
             # calculate the ray position and direction
-            camera_x = (2 * x / SCREEN_WIDTH) - 1
+            camera_x = (2 * x / self.screen_width) - 1
             if camera_x > 1 or camera_x < -1:
                 print('camera_x is too big or too small!')
                 print(f'camera_x = {camera_x}')
@@ -250,17 +268,17 @@ class RaycastingEngine(arcade.Window):
             **********************************************
             """
             # the height of the wall at the given pixel column
-            line_height = int(SCREEN_HEIGHT / (perpendicular_wall_dist + 0.00000001))
+            line_height = int(self.screen_height / (perpendicular_wall_dist + 0.00000001))
 
             # the pixel (height) at which to start drawing the wall
-            draw_start = -line_height / 2 + SCREEN_HEIGHT / 2
+            draw_start = -line_height / 2 + self.screen_height / 2
 
             if draw_start < 0:
                 draw_start = 0
 
-            draw_end = line_height / 2 + SCREEN_HEIGHT / 2
-            if draw_end >= SCREEN_HEIGHT:
-                draw_end = SCREEN_HEIGHT - 1
+            draw_end = line_height / 2 + self.screen_height / 2
+            if draw_end >= self.screen_height:
+                draw_end = self.screen_height - 1
 
             # set the color with which to draw the given pixel column
             if side == 0:
@@ -338,10 +356,15 @@ class RaycastingEngine(arcade.Window):
             old_plane_x = self.plane_x
             self.plane_x = self.plane_x * math.cos(-self.rotation_speed) - self.plane_y * math.sin(-self.rotation_speed)
             self.plane_y = old_plane_x * math.sin(-self.rotation_speed) + self.plane_y * math.cos(-self.rotation_speed)
+        if self.mouse_look:
+            self.mouse_look = False
+            self.rotate_right = False
+            self.rotate_left = False
 
     def on_draw(self):
 
         arcade.start_render()
+        left, screen_width, bottom, screen_height = self.get_viewport()
 
         # draw all the shapes in the list
         self.shape_list.draw()
@@ -381,6 +404,18 @@ class RaycastingEngine(arcade.Window):
             self.rotate_left = False
         if key == arcade.key.RIGHT:
             self.rotate_right = False
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        self.mouse_look = True
+        if x > self.last_x or (x == self.screen_width-1 and dx >= 0):
+            self.rotate_right = True
+        elif x < self.last_x or (x == 0 and dx <= 0):
+            self.rotate_left = True
+
+        self.last_x = x
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        print(f'press: {button} @ ({x}, {y})')
 
 
 def pick_map(map_number: int):
@@ -443,7 +478,7 @@ def pick_map(map_number: int):
 
 def main():
     raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine")
-    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(1), )
+    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(1), hide_mouse=False)
 
     arcade.run()
 
