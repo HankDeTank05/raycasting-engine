@@ -1,11 +1,14 @@
-import arcade
+import math
+import sys
 
+import arcade
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 
-MOVE_SPEED = 1
-ROTATION_SPEED = 1
+MOVE_SPEED = 5.0
+ROTATION_SPEED = 2.0
+
 
 class RaycastingEngine(arcade.Window):
     """
@@ -48,13 +51,21 @@ class RaycastingEngine(arcade.Window):
         self.floor_color = None
         self.ceiling_color = None
 
+        # gameplay
+        self.move_speed = None
+        self.rotation_speed = None
+        self.constant_move_speed = None
+        self.constant_rotation_speed = None
+
     def setup(self,
               player_start: tuple,
               look_start: tuple,
               plane_start: tuple,
               level_map,
-              floor_color=None,
-              ceiling_color=None,
+              player_move_speed=MOVE_SPEED,
+              player_rotation_speed=ROTATION_SPEED,
+              floor_color=arcade.color.BLACK,
+              ceiling_color=arcade.color.BLACK,
               strafe_enabled=True,
               hide_mouse=True):
 
@@ -109,19 +120,17 @@ class RaycastingEngine(arcade.Window):
             arcade.color.DARK_PINK
         ]
 
-        if floor_color is None:
-            self.floor_color = arcade.color.BLACK
-        else:
-            self.floor_color = floor_color
+        self.floor_color = floor_color
 
-        if ceiling_color is None:
-            self.ceiling_color = arcade.color.BLACK
-        else:
-            self.ceiling_color = ceiling_color
+        self.ceiling_color = ceiling_color
 
         # hide the mouse by default
         if hide_mouse:
             self.set_exclusive_mouse(exclusive=True)
+
+        # gameplay
+        self.constant_move_speed = player_move_speed
+        self.constant_rotation_speed = player_rotation_speed
 
     def on_update(self, delta_time):
         # clear the shape list for the new frame
@@ -213,7 +222,7 @@ class RaycastingEngine(arcade.Window):
                 side_dist_y = (self.pos_y - map_y) * delta_dist_y
             else:
                 step_y = 1
-                side_dist_y = (map_y + 1 - self.pos_y) * side_dist_y
+                side_dist_y = (map_y + 1 - self.pos_y) * delta_dist_y
 
             # continually cast the ray out into the distance until it hits a wall
             while hit == 0:
@@ -273,7 +282,7 @@ class RaycastingEngine(arcade.Window):
                 color_list.append(color)
 
         shape = arcade.create_line_generic_with_colors(point_list, color_list, 3)
-        shape_list.append(shape)
+        self.shape_list.append(shape)
 
         self.old_time = self.time
         self.time += delta_time
@@ -288,8 +297,158 @@ class RaycastingEngine(arcade.Window):
         ********************************************************
         """
 
-        self.move_speed = frame_time * MOVE_SPEED
-        self.rotation_speed = frame_time * ROTATION_SPEED
+        self.move_speed = frame_time * self.constant_move_speed
+        self.rotation_speed = frame_time * self.constant_rotation_speed
 
-    def on_update(self):
-        pass
+        if self.move_forward:
+            if not self.map[int(self.pos_x + self.dir_x * self.move_speed)][int(self.pos_y)]:
+                self.pos_x += self.dir_x * self.move_speed
+            if not self.map[int(self.pos_x)][int(self.pos_y + self.dir_y * self.move_speed)]:
+                self.pos_y += self.dir_y * self.move_speed
+        elif self.move_backward:
+            if not self.map[int(self.pos_x - self.dir_x * self.move_speed)][int(self.pos_y)]:
+                self.pos_x -= self.dir_x * self.move_speed
+            if not self.map[int(self.pos_x)][int(self.pos_y - self.dir_y * self.move_speed)]:
+                self.pos_y -= self.dir_y * self.move_speed
+
+        if self.strafe_left:
+            if not self.map[int(self.pos_x - self.dir_y * self.move_speed)][int(self.pos_y)]:
+                self.pos_x -= self.dir_y * self.move_speed
+            if not self.map[int(self.pos_x)][int(self.pos_y + self.dir_x * self.move_speed)]:
+                self.pos_y += self.dir_x * self.move_speed
+        elif self.strafe_right:
+            if not self.map[int(self.pos_x + self.dir_y * self.move_speed)][int(self.pos_y)]:
+                self.pos_x += self.dir_y * self.move_speed
+            if not self.map[int(self.pos_x)][int(self.pos_y - self.dir_x * self.move_speed)]:
+                self.pos_y -= self.dir_x * self.move_speed
+
+        if self.rotate_left:
+            # both camera direction and camera plane must be rotated
+            old_dir_x = self.dir_x
+            self.dir_x = self.dir_x * math.cos(self.rotation_speed) - self.dir_y * math.sin(self.rotation_speed)
+            self.dir_y = old_dir_x * math.sin(self.rotation_speed) + self.dir_y * math.cos(self.rotation_speed)
+            old_plane_x = self.plane_x
+            self.plane_x = self.plane_x * math.cos(self.rotation_speed) - self.plane_y * math.sin(self.rotation_speed)
+            self.plane_y = old_plane_x * math.sin(self.rotation_speed) + self.plane_y * math.cos(self.rotation_speed)
+        elif self.rotate_right:
+            # both camera direction and camera plane must be rotated
+            old_dir_x = self.dir_x
+            self.dir_x = self.dir_x * math.cos(-self.rotation_speed) - self.dir_y * math.sin(-self.rotation_speed)
+            self.dir_y = old_dir_x * math.sin(-self.rotation_speed) + self.dir_y * math.cos(-self.rotation_speed)
+            old_plane_x = self.plane_x
+            self.plane_x = self.plane_x * math.cos(-self.rotation_speed) - self.plane_y * math.sin(-self.rotation_speed)
+            self.plane_y = old_plane_x * math.sin(-self.rotation_speed) + self.plane_y * math.cos(-self.rotation_speed)
+
+    def on_draw(self):
+
+        arcade.start_render()
+
+        # draw all the shapes in the list
+        self.shape_list.draw()
+
+        """
+        ********************************
+        INSERT MINIMAP DRAWING CODE HERE
+        ********************************
+        """
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.W:
+            self.move_forward = True
+        if key == arcade.key.A:
+            self.strafe_left = True
+        if key == arcade.key.S:
+            self.move_backward = True
+        if key == arcade.key.D:
+            self.strafe_right = True
+        if key == arcade.key.LEFT:
+            self.rotate_left = True
+        if key == arcade.key.RIGHT:
+            self.rotate_right = True
+        if key == arcade.key.ESCAPE:
+            sys.exit()
+
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.W:
+            self.move_forward = False
+        if key == arcade.key.A:
+            self.strafe_left = False
+        if key == arcade.key.S:
+            self.move_backward = False
+        if key == arcade.key.D:
+            self.strafe_right = False
+        if key == arcade.key.LEFT:
+            self.rotate_left = False
+        if key == arcade.key.RIGHT:
+            self.rotate_right = False
+
+
+def pick_map(map_number: int):
+    maps = [
+        [  # simple example map
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 4, 0, 0, 0, 0, 5, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 4, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ],
+        [  # complex example map
+            [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7, 7, 7],
+            [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 7],
+            [4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7],
+            [4, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7],
+            [4, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 7],
+            [4, 0, 4, 0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 0, 7, 7, 7, 7, 7],
+            [4, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 5, 0, 5, 0, 5, 7, 0, 0, 0, 7, 7, 7, 1],
+            [4, 0, 6, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 7, 0, 0, 0, 0, 0, 0, 8],
+            [4, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 1],
+            [4, 0, 8, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 7, 0, 0, 0, 0, 0, 0, 8],
+            [4, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 7, 0, 0, 0, 7, 7, 7, 1],
+            [4, 0, 0, 0, 0, 0, 0, 5, 5, 5, 5, 0, 5, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 1],
+            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+            [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4],
+            [6, 6, 6, 6, 6, 6, 0, 6, 6, 6, 6, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+            [4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 6, 0, 6, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3],
+            [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
+            [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 2, 0, 0, 5, 0, 0, 2, 0, 0, 0, 2],
+            [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2],
+            [4, 0, 6, 0, 6, 0, 0, 0, 0, 4, 6, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 2],
+            [4, 0, 0, 5, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2],
+            [4, 0, 6, 0, 6, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 5, 0, 0, 2, 0, 0, 0, 2],
+            [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
+            [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
+        ]
+    ]
+    return maps[map_number]
+
+
+def main():
+    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine")
+    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(1), )
+
+    arcade.run()
+
+
+if __name__ == "__main__":
+    main()
+else:
+    pass
