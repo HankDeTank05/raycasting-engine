@@ -7,7 +7,7 @@ SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 
 MOVE_SPEED = 5.0
-ROTATION_SPEED = 2.0
+ROTATION_SPEED = 1.0
 
 
 class RaycastingEngine(arcade.Window):
@@ -50,6 +50,10 @@ class RaycastingEngine(arcade.Window):
         self.mouse_look = None
         self.last_x = None
         self.last_y = None  # currently no implementation for this, just a placeholder
+        self.rotate_x_magnitude = None
+        self.rotate_y_magnitude = None  # currently no implementation for this, just a placeholder
+
+        self.last_frame = None
 
         # performance statistics
         self.time = None
@@ -106,6 +110,10 @@ class RaycastingEngine(arcade.Window):
         self.mouse_look = False
         self.last_x = self.screen_width // 2
         self.last_y = self.screen_height // 2
+        self.rotate_x_magnitude = 1
+        self.rotate_y_magnitude = 1
+
+        self.last_frame = []
 
         # performance statistics
         self.time = 0
@@ -299,7 +307,7 @@ class RaycastingEngine(arcade.Window):
             for i in range(2):
                 color_list.append(color)
 
-        shape = arcade.create_line_generic_with_colors(point_list, color_list, 3)
+        shape = arcade.create_line_generic_with_colors(point_list, color_list, 1)
         self.shape_list.append(shape)
 
         self.old_time = self.time
@@ -317,6 +325,8 @@ class RaycastingEngine(arcade.Window):
 
         self.move_speed = frame_time * self.constant_move_speed
         self.rotation_speed = frame_time * self.constant_rotation_speed
+        #print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
+        self.rotation_speed *= (self.rotate_x_magnitude/100)
 
         if self.move_forward:
             if not self.map[int(self.pos_x + self.dir_x * self.move_speed)][int(self.pos_y)]:
@@ -364,10 +374,14 @@ class RaycastingEngine(arcade.Window):
     def on_draw(self):
 
         arcade.start_render()
-        left, screen_width, bottom, screen_height = self.get_viewport()
 
         # draw all the shapes in the list
+        '''if len(self.last_frame) > 10:
+            for frame in range(10):
+                self.last_frame[len(self.last_frame) - frame - 1].draw()'''
         self.shape_list.draw()
+
+        '''self.last_frame.append(self.shape_list)'''
 
         """
         ********************************
@@ -409,8 +423,12 @@ class RaycastingEngine(arcade.Window):
         self.mouse_look = True
         if x > self.last_x or (x == self.screen_width-1 and dx >= 0):
             self.rotate_right = True
+            self.rotate_x_magnitude = abs(dx)
+            print(self.rotate_x_magnitude)
         elif x < self.last_x or (x == 0 and dx <= 0):
             self.rotate_left = True
+            self.rotate_x_magnitude = abs(dx)
+            print(self.rotate_x_magnitude)
 
         self.last_x = x
 
@@ -477,8 +495,8 @@ def pick_map(map_number: int):
 
 
 def main():
-    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine")
-    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(1), hide_mouse=False)
+    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
+    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(1), hide_mouse=True, floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
 
     arcade.run()
 
