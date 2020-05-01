@@ -3,8 +3,8 @@ import sys
 import generate_maps
 import arcade
 
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 
 MOVE_SPEED = 5.0
 ROTATION_SPEED = 2.0
@@ -74,14 +74,16 @@ class RaycastingEngine(arcade.Window):
         self.rotation_speed = None
         self.constant_move_speed = None
         self.constant_rotation_speed = None
+        self.mouse_sensitivity = None
+        self.last_scroll = None
 
     def setup(self,
               player_start: tuple,
               look_start: tuple,
               plane_start: tuple,
               level_map,
-              player_move_speed=MOVE_SPEED,
-              player_rotation_speed=ROTATION_SPEED,
+              player_move_speed=5.0,
+              player_rotation_speed=2.0,
               floor_color=arcade.color.BLACK,
               ceiling_color=arcade.color.BLACK,
               strafe_enabled=True,
@@ -159,6 +161,8 @@ class RaycastingEngine(arcade.Window):
         # gameplay
         self.constant_move_speed = player_move_speed
         self.constant_rotation_speed = player_rotation_speed
+        self.mouse_sensitivity = 50
+        self.last_scroll = 0
 
     def on_update(self, delta_time):
         # clear the shape list for the new frame
@@ -329,12 +333,18 @@ class RaycastingEngine(arcade.Window):
         self.rotation_speed = frame_time * self.constant_rotation_speed
         #print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
         if self.mouse_look:
-            self.rotation_speed *= (self.rotate_x_magnitude/100)
+            self.rotation_speed *= (self.rotate_x_magnitude/self.mouse_sensitivity)
 
         if self.move_forward:
+            print(f'{1} move')
+            print(f'frame_time = {frame_time}')
+            print(f'self.dir_x = {self.dir_x}')
             if not self.map[int(self.pos_x + self.dir_x * self.move_speed)][int(self.pos_y)]:
+                print(f'{2} move')
                 self.pos_x += self.dir_x * self.move_speed
+                print(f'self.pos_x = {self.pos_x}')
             if not self.map[int(self.pos_x)][int(self.pos_y + self.dir_y * self.move_speed)]:
+                print(f'{3} move')
                 self.pos_y += self.dir_y * self.move_speed
         elif self.move_backward:
             if not self.map[int(self.pos_x - self.dir_x * self.move_speed)][int(self.pos_y)]:
@@ -394,12 +404,16 @@ class RaycastingEngine(arcade.Window):
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W:
+            print('move_forward')
             self.move_forward = True
         if key == arcade.key.A:
+            print('strafe_left')
             self.strafe_left = True
         if key == arcade.key.S:
+            print('move_backward')
             self.move_backward = True
         if key == arcade.key.D:
+            print('strafe_right')
             self.strafe_right = True
         if key == arcade.key.LEFT:
             self.rotate_left = True
@@ -434,6 +448,14 @@ class RaycastingEngine(arcade.Window):
             print(self.rotate_x_magnitude)
 
         self.last_x = x
+
+    def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+        if scroll_y > 0:
+            self.mouse_sensitivity += 2
+        elif scroll_y < 0:
+            self.mouse_sensitivity -= 2
+        if self.mouse_sensitivity <= 1:
+            self.mouse_sensitivity = 1
 
     def on_mouse_press(self, x, y, button, modifiers):
         print(f'press: {button} @ ({x}, {y})')
@@ -499,8 +521,10 @@ def pick_map(map_number: int):
 
 
 def main():
-    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
-    raycasting.setup((23,23), (-1, 0), (0, 0.66), pick_map(2), hide_mouse=True, floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
+    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
+    raycasting.setup((22.5, 22.5), (-1, 0), (0, 0.66), pick_map(2), hide_mouse=False,
+                     floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE,
+                     player_move_speed=5.0, player_rotation_speed=2.0)
 
     arcade.run()
 
