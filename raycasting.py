@@ -379,9 +379,9 @@ class RaycastingEngine(arcade.Window):
 
         # draw all the shapes in the list
         self.shape_list.draw()
-        if len(self.last_frame) > MOTION_PERSISTENCE:
+        '''if len(self.last_frame) > MOTION_PERSISTENCE:
             for frame in range(MOTION_PERSISTENCE):
-                self.last_frame[len(self.last_frame) - frame - 1].draw()
+                self.last_frame[len(self.last_frame) - frame - 1].draw()'''
 
         self.last_frame.append(self.shape_list)
 
