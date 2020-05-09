@@ -7,9 +7,11 @@ class Cell:
     A class representing one cell on the map
     """
 
-    def __init__(self, pos_x: int, pos_y: int):
+    def __init__(self, pos_x: int, pos_y: int, map_x: int, map_y: int):
         self.pos_x = pos_x
         self.pos_y = pos_y
+        self.map_x = map_x
+        self.map_y = map_y
         self.visited = False
 
     def __repr__(self):
@@ -20,7 +22,7 @@ class Cell:
         return f'{visit_status} cell at ({self.pos_x}, {self.pos_y})'
 
     def __str__(self):
-        return 'C'
+        return ' '
 
 
 class RectangularMap:
@@ -96,16 +98,18 @@ class RectangularMap:
 
 
 class Maze:
-    def __init__(self, x_size: int, y_size: int):
-        self.width = x_size*2 + 1
-        self.height = y_size*2 + 1
+    def __init__(self, cell_size_x: int, cell_size_y: int):
+        self.cell_width = cell_size_x
+        self.cell_height = cell_size_y
+        self.width = cell_size_x * 2 + 1
+        self.height = cell_size_y * 2 + 1
         self.maze = []
 
         for i in range(self.height):
             self.maze.append([])
             for j in range(self.width):
                 if i % 2 == 1 and j % 2 == 1:
-                    self.maze[i].append(Cell(j//2, i//2))
+                    self.maze[i].append(Cell(j//2, i//2, j, i))
                 elif i == 0 or i == self.height-1 or j == 0 or j == self.width-1:
                     self.maze[i].append('X')
                 else:
@@ -113,20 +117,84 @@ class Maze:
             # print(self.maze[i])
 
     def generate_with_recursive_backtracking(self, start_cell_x: int, start_cell_y: int):
-        stack = []
+        def neighbor_checker(x: int, y: int):
+            """
+            checks all the neighbor cells for ones that have not been visited,
+            and returns the coordinates of the unvisited ones
+            :param x:
+            :param y:
+            :return:
+            """
+            unv_neigh = []
+            # check the above neighbor
+            if self.maze[y-1][x] != 'X' and not self.maze[y-2][x].visited:
+                unv_neigh.append((x, y - 2, 'u'))
+            # check the right neighbor
+            if self.maze[y][x+1] != 'X' and not self.maze[y][x+2].visited:
+                unv_neigh.append((x + 2, y, 'r'))
+            # check the below neighbor
+            if self.maze[y+1][x] != 'X' and not self.maze[y+2][x].visited:
+                unv_neigh.append((x, y + 2, 'd'))
+            # check the left neighbor
+            if self.maze[y][x-1] != 'X' and not self.maze[y][x-2].visited:
+                unv_neigh.append((x - 2, y, 'l'))
 
+            return unv_neigh
+        stack = []
+        if 0 <= start_cell_x < self.cell_width and 0 <= start_cell_y < self.cell_height:
+            # convert maze coordinates into 2d list coordinates
+            start_maze_x = start_cell_x * 2 + 1
+            start_maze_y = start_cell_y * 2 + 1
+            # mark the starting cell as the current cell
+            current_cell = self.maze[start_maze_y][start_maze_x]
+            # mark the current cell as visited
+            current_cell.visited = True
+            # push the current cell to the stack
+            stack.append(current_cell)
+        else:
+            # if one of the given coordinates is out of range, print an error message and return
+            print(f'INVALID STARTING COORDINATES\nx={start_cell_x}\ny={start_cell_y}')
+            return
+
+        # while the stack is not empty,
         while len(stack) > 0:
-            stack.pop()
-            pass
+            # pop a cell from the stack and make it the current cell
+            current_cell = stack.pop()
+            # if the current cell has any neighbors which have not been visited
+            unvisited_neighbors = neighbor_checker(current_cell.map_x, current_cell.map_y)
+            if len(unvisited_neighbors) > 0:
+                # push the current cell to the stack
+                stack.append(current_cell)
+                # choose one of the unvisited neighbors
+                chosen_neighbor = random.choice(unvisited_neighbors)
+                # remove the wall between the current_cell and the chosen cell
+                if chosen_neighbor[2] == 'u':
+                    self.maze[current_cell.map_y-1][current_cell.map_x] = ' '
+                elif chosen_neighbor[2] == 'r':
+                    self.maze[current_cell.map_y][current_cell.map_x+1] = ' '
+                elif chosen_neighbor[2] == 'd':
+                    self.maze[current_cell.map_y+1][current_cell.map_x] = ' '
+                elif chosen_neighbor[2] == 'l':
+                    self.maze[current_cell.map_y][current_cell.map_x-1] = ' '
+
+                chosen_neighbor = self.maze[chosen_neighbor[1]][chosen_neighbor[0]]
+                chosen_neighbor.visited = True
+                stack.append(chosen_neighbor)
+
         pass
 
     def __str__(self):
         return_string = ''
         for row in self.maze:
-            return_string += str(row) + '\n'
+            for cell in row:
+                return_string += str(cell) + ' '
+            return_string += '\n'
 
         return return_string
 
 
 if __name__ == "__main__":
-    test_maze = Maze(5,5)
+    test_maze = Maze(50, 5)
+    print(test_maze)
+    test_maze.generate_with_recursive_backtracking(0, 0)
+    print(test_maze)
