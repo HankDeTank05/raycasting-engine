@@ -30,71 +30,33 @@ class RectangularMap:
     A class representing the world map the player will walk around in
     """
 
-    def __init__(self, cell_width: int, cell_height: int, open_map=True):
-        # cell width/height is the measure of how wide/high the map is
-        # in terms of the NUMBER OF CELLS
+    def __init__(self, player_start_x: int, player_start_y: int, cell_width: int, cell_height: int):
+        self.start_x = player_start_x
+        self.start_y = player_start_y
+
         self.cell_width = cell_width
         self.cell_height = cell_height
-        self.cell_map = []
 
-        # generate the cell map. each cell's data is the value of the given cell
-        for h in range(self.cell_height):
-            self.cell_map.append([])
-            for w in range(self.cell_width):
-                new_cell = Cell(0)
-                self.cell_map[h].append(new_cell)
+        self.map_width = self.cell_width * 2 + 1
+        self.map_height = self.cell_height * 2 + 1
 
-        # map width/height is the measure of how wide/high the LIST REPRESENTATION of the map is
-        # this is in terms of the NUMBER OF INDICES IN THE LIST REPRESENTATION of the map
-        self.list_rep_width = abs(cell_width * 2) + 1
-        self.list_rep_height = abs(cell_height * 2) + 1
-        self.list_rep = []
+        self.map = []
 
-        for h in range(self.list_rep_height):
-            self.list_rep.append([])
-            for w in range(self.list_rep_width):
-                self.list_rep[h].append(22)
-
-        self.update_list_rep()
-
-    def __repr__(self):
-        pass
-
-    def update_list_rep(self):
-        for h in range(self.list_rep_height):
-            cell_h = (h - 1) / 2
-            for w in range(self.list_rep_width):
-                cell_w = (w - 1) / 2
-
-                # if we're at a cell's location in the list_rep list
-                if cell_w % 1 == 0 and cell_h % 1 == 0:
-                    # append the cell's data to the list
-                    self.list_rep[h][w] = self.cell_map[int(cell_h)][int(cell_w)]
-                    if self.list_rep[h][w].has_right():
-                        self.list_rep[h][w + 1] = '  '
-                    else:
-                        self.list_rep[h][w + 1] = 'xx'
-                    if self.list_rep[h][w].has_down():
-                        self.list_rep[h - 1][w] = '  '
-                    else:
-                        self.list_rep[h - 1][w] = 'xx'
-
-    def print_cell_map(self):
-        for h in self.cell_map:
-            print(h)
-
-    def print_list_rep(self):
-        for h in self.list_rep:
-            for w in h:
-                print(f'{w} ', end='')
-            print()
+        for i in range(self.map_height):
+            self.map.append([])
+            for j in range(self.map_width):
+                if i == 0 or i == self.map_height-1 or j == 0 or j == self.map_width-1:
+                    self.map.append('X')
+                else:
+                    self.map.append(' ')
 
     def generate_maze_recursive_backtracking(self, cell_start_x: int, cell_start_y: int):
         # generate the maze
         new_map = Maze(self.cell_width, self.cell_height)
         new_map.generate_with_recursive_backtracking()
-        # update the list representation of the map
-        self.update_list_rep()
+
+        # save the maze
+        self.map = new_map
 
 
 class Maze:
