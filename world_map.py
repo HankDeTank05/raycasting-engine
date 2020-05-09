@@ -91,20 +91,26 @@ class RectangularMap:
 
     def mazify(self, cell_start_x: int, cell_start_y: int):
         # generate the maze
-        mazify = Maze(self.cell_width, self.cell_height, cell_start_x, cell_start_y, 0, 0)
-        self.cell_map = mazify.cells
+        new_map = Maze(self.cell_width, self.cell_height)
+        new_map.generate_with_recursive_backtracking()
         # update the list representation of the map
         self.update_list_rep()
 
 
 class Maze:
     def __init__(self, cell_size_x: int, cell_size_y: int):
+        # the size of the maze, measured in maze cells
         self.cell_width = cell_size_x
         self.cell_height = cell_size_y
+
+        # the size of the 2d list that stores the maze (maze cells are in odd numbered rows/columns)
         self.width = cell_size_x * 2 + 1
         self.height = cell_size_y * 2 + 1
+
+        # the (soon-to-be) 2d list that contains the maze itself
         self.maze = []
 
+        # generate a placeholder maze
         for i in range(self.height):
             self.maze.append([])
             for j in range(self.width):
@@ -114,15 +120,52 @@ class Maze:
                     self.maze[i].append('X')
                 else:
                     self.maze[i].append(1)
-            # print(self.maze[i])
 
     def generate_with_recursive_backtracking(self, start_cell_x: int, start_cell_y: int):
+        """
+        generate a maze starting from the cell at the specified cell coordinates, using the following recursive
+        backtracking algorithm:
+
+        1. choose the initial cell
+        2. mark it as visited
+        3. push it to the stack
+        4. while the stack is not empty...
+            1. pop a cell from the stack and make it the current cell
+            2. if the current cell has any neighbors which have not been visited...
+                1. push the current cell back onto the stack
+                2. randomly choose one of the unvisited neighbors
+                3. remove the wall between the current cell and the chosen cell
+                4. mark the chosen neighbor cell as visited
+                5. push it back onto the stack
+
+        NOTE: this algorithm was copy-pasted from the source, and then edited for clarity
+        source: https://en.wikipedia.org/wiki/Maze_generation_algorithm#Recursive_backtracker (as of 5/9/2020)
+
+        :param start_cell_x:
+        the x-coordinate of the CELL from which the maze will start
+        NOTE: this is NOT THE LIST (self.maze) x-coordinate!!
+
+        :param start_cell_y:
+        the y-coordinate of the CELL from which the maze will start
+        NOTE: this is NOT THE LIST (self.maze) y-coordinate!!
+
+        :return:
+        """
         def neighbor_checker(x: int, y: int):
             """
             checks all the neighbor cells for ones that have not been visited,
             and returns the coordinates of the unvisited ones
+
             :param x:
+            this is the LIST X-COORDINATE of the cell to check. the LIST coordinate is needed, as this method checks the
+            immediately surrounding LIST ELEMENTS (above, to the right, below, and to the left)
+            NOTE: this is NOT THE CELL X-COORDINATE
+
             :param y:
+            this is the LIST Y-COORDINATE of the cell to check. the LIST coordinate is needed, as this method checks the
+            immediately surrounding LIST ELEMENTS (above, to the right, below, and to the left)
+            NOTE: this is NOT THE CELL Y-COORDINATE
+
             :return:
             """
             unv_neigh = []
@@ -194,7 +237,7 @@ class Maze:
 
 
 if __name__ == "__main__":
-    test_maze = Maze(50, 5)
+    test_maze = Maze(10, 10)
     print(test_maze)
     test_maze.generate_with_recursive_backtracking(0, 0)
     print(test_maze)
