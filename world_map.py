@@ -89,7 +89,7 @@ class RectangularMap:
                 print(f'{w} ', end='')
             print()
 
-    def mazify(self, cell_start_x: int, cell_start_y: int):
+    def generate_maze_recursive_backtracking(self, cell_start_x: int, cell_start_y: int):
         # generate the maze
         new_map = Maze(self.cell_width, self.cell_height)
         new_map.generate_with_recursive_backtracking()
@@ -138,7 +138,11 @@ class Maze:
                 4. mark the chosen neighbor cell as visited
                 5. push it back onto the stack
 
-        NOTE: this algorithm was copy-pasted from the source, and then edited for clarity
+        NOTE: this algorithm, although it doesn't actually use recursion to generate the maze, produces a functionally
+              identical maze to the true recursive algorithm. This algorithm is optimized to do so without recursion
+              in order to avoid the maximum recursion depth. This allows for larger mazes to be generated.
+
+        CREDITS NOTE: this algorithm was copy-pasted from the source, and then edited for clarity
         source: https://en.wikipedia.org/wiki/Maze_generation_algorithm#Recursive_backtracker (as of 5/9/2020)
 
         :param start_cell_x:
@@ -223,8 +227,6 @@ class Maze:
                 chosen_neighbor = self.maze[chosen_neighbor[1]][chosen_neighbor[0]]
                 chosen_neighbor.visited = True
                 stack.append(chosen_neighbor)
-
-        pass
 
     def __str__(self):
         return_string = ''
