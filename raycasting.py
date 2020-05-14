@@ -1,13 +1,13 @@
 import math
 import sys
-
+import world_map as worldmap
 import arcade
 
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 
 MOVE_SPEED = 5.0
-ROTATION_SPEED = 1.0
+ROTATION_SPEED = 2.0
 
 MOTION_PERSISTENCE = 3
 
@@ -68,6 +68,7 @@ class RaycastingEngine(arcade.Window):
         self.dark_wall_color_list = None
         self.floor_color = None
         self.ceiling_color = None
+        self.minimap = None
 
         # gameplay
         self.move_speed = None
@@ -75,17 +76,7 @@ class RaycastingEngine(arcade.Window):
         self.constant_move_speed = None
         self.constant_rotation_speed = None
 
-    def setup(self,
-              player_start: tuple,
-              look_start: tuple,
-              plane_start: tuple,
-              level_map,
-              player_move_speed=MOVE_SPEED,
-              player_rotation_speed=ROTATION_SPEED,
-              floor_color=arcade.color.BLACK,
-              ceiling_color=arcade.color.BLACK,
-              strafe_enabled=True,
-              hide_mouse=True):
+    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple, level_map, player_move_speed=MOVE_SPEED, player_rotation_speed=ROTATION_SPEED, floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK, strafe_enabled=True, hide_mouse=True, mouse_look=False):
 
         # level map
         self.map = level_map
@@ -93,6 +84,16 @@ class RaycastingEngine(arcade.Window):
         # player parameters
         self.pos_x = player_start[0]
         self.pos_y = player_start[1]
+
+        # if the player is not starting in an open space, start searching from the top left of the list for
+        # an open space
+        if self.map[self.pos_y][self.pos_x] != 0:
+            for i in range(len(self.map)):
+                for j in range(len(self.map[i])):
+                    if self.map[i][j] == 0:
+                        self.pos_x = j
+                        self.pos_y = i
+                        break
 
         self.dir_x = look_start[0]
         self.dir_y = look_start[1]
@@ -109,7 +110,7 @@ class RaycastingEngine(arcade.Window):
         self.rotate_left = False
         self.rotate_right = False
 
-        self.mouse_look = False
+        self.mouse_look = mouse_look
         self.last_x = self.screen_width // 2
         self.last_y = self.screen_height // 2
         self.rotate_x_magnitude = 1
@@ -156,6 +157,14 @@ class RaycastingEngine(arcade.Window):
         else:
             self.set_mouse_visible(True)
 
+        self.minimap = []
+        for i in range(len(self.map)):
+            self.minimap.append([])
+            for j in range(len(self.map[i])):
+                self.minimap[i].append(None)
+
+        self.minimap_shape_list = arcade.ShapeElementList()
+
         # gameplay
         self.constant_move_speed = player_move_speed
         self.constant_rotation_speed = player_rotation_speed
@@ -163,6 +172,7 @@ class RaycastingEngine(arcade.Window):
     def on_update(self, delta_time):
         # clear the shape list for the new frame
         self.shape_list = arcade.ShapeElementList()
+        #self.minimap_shape_list = arcade.ShapeElementList()
 
         # set the floor and ceiling colors
         floor = arcade.create_rectangle(
@@ -264,8 +274,11 @@ class RaycastingEngine(arcade.Window):
                     side = 1
 
                 # check if the ray has hit a wall yet
-                if self.map[map_x][map_y] > 0:
+                if 0 < self.map[map_x][map_y] < 10:
                     hit = 1
+                    self.minimap[map_x][map_y] = 1
+                elif 10 <= self.map[map_x][map_y] < 20:
+                    hit = 2
 
             if side == 0:
                 perpendicular_wall_dist = (map_x - self.pos_x + (1 - step_x) / 2) / (ray_dir_x + 0.00000001)
@@ -277,6 +290,7 @@ class RaycastingEngine(arcade.Window):
             MODIFY CODE BELOW FOR ALLOWING PITS/HIGH WALLS
             **********************************************
             """
+
             # the height of the wall at the given pixel column
             line_height = int(self.screen_height / (perpendicular_wall_dist + 0.00000001))
 
@@ -286,19 +300,22 @@ class RaycastingEngine(arcade.Window):
             if draw_start < 0:
                 draw_start = 0
 
-            draw_end = line_height / 2 + self.screen_height / 2
+            if hit == 1:  # if the wall is single-height
+                draw_end = line_height / 2 + self.screen_height / 2
+            elif hit == 2:  # otherwise, if the wall is double-height
+                draw_end = line_height + self.screen_height / 2
             if draw_end >= self.screen_height:
                 draw_end = self.screen_height - 1
 
             # set the color with which to draw the given pixel column
             if side == 0:
                 try:
-                    color = self.main_wall_color_list[self.map[map_x][map_y]]
+                    color = self.main_wall_color_list[self.map[map_x][map_y] % 10]
                 except IndexError:
                     color = arcade.color.YELLOW
             elif side == 1:
                 try:
-                    color = self.dark_wall_color_list[self.map[map_x][map_y]]
+                    color = self.dark_wall_color_list[self.map[map_x][map_y] % 10]
                 except IndexError:
                     color = arcade.color.DARK_YELLOW
 
@@ -328,7 +345,7 @@ class RaycastingEngine(arcade.Window):
         self.move_speed = frame_time * self.constant_move_speed
         self.rotation_speed = frame_time * self.constant_rotation_speed
         #print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
-        self.rotation_speed *= (self.rotate_x_magnitude/100)
+        #self.rotation_speed *= (self.rotate_x_magnitude/100)
 
         if self.move_forward:
             if not self.map[int(self.pos_x + self.dir_x * self.move_speed)][int(self.pos_y)]:
@@ -376,14 +393,26 @@ class RaycastingEngine(arcade.Window):
     def on_draw(self):
 
         arcade.start_render()
+        """
+        # draw all the shapes in the listHALF_SQUARE_SIZE = 1
+        MINIMAP_POSITION = 10
 
-        # draw all the shapes in the list
+        minimap_point_list = []
+        minimap_color_list = []
+        for i in range(len(self.minimap)):
+            for j in range(len(self.minimap[i])):
+
+                if self.minimap[i][j] == 1:
+                    minimap_point_list.append((j, i))
+                    minimap_color_list.append([255, 255, 255, 0])
+                else:
+                    for i in range(4):
+                        minimap_color_list.append(arcade.color.RED)"""
+
+        #arcade.draw_points(minimap_point_list, minimap_color_list)
+        #self.minimap_shape_list.append(minimap_shape)
         self.shape_list.draw()
-        '''if len(self.last_frame) > MOTION_PERSISTENCE:
-            for frame in range(MOTION_PERSISTENCE):
-                self.last_frame[len(self.last_frame) - frame - 1].draw()'''
-
-        self.last_frame.append(self.shape_list)
+        #self.minimap_shape_list.draw()
 
         """
         ********************************
@@ -438,33 +467,36 @@ class RaycastingEngine(arcade.Window):
         print(f'press: {button} @ ({x}, {y})')
 
 
+class Minimap:
+    pass
+
 def pick_map(map_number: int):
     maps = [
         [  # simple example map
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 0, 0, 0, 5, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  2,  2,  2,  2,  2,  0,  0,  0,  0,  3,  0,  3,  0,  3,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  3,  0,  0,  0,  3,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  2,  2,  0,  2,  2,  0,  0,  0,  0,  3,  0,  3,  0,  3,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  4,  4,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  4,  0,  4,  0,  0,  0,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  4,  0,  0,  0,  0,  5,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  4,  0,  4,  0,  0,  0,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  4,  0,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11,  4,  4,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]
         ],
         [  # complex example map
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7, 7, 7],
@@ -491,14 +523,18 @@ def pick_map(map_number: int):
             [4, 0, 6, 0, 6, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 5, 0, 0, 2, 0, 0, 0, 2],
             [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
-        ]
+        ],
     ]
     return maps[map_number]
 
 
 def main():
-    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
-    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(1), hide_mouse=True, floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
+    world_map_test = worldmap.Maze(10, 10)
+    world_map_test.generate_with_recursive_backtracking(0, 0)
+    print(world_map_test)
+    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
+    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=False,
+                     floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
 
     arcade.run()
 
