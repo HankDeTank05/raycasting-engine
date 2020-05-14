@@ -1,6 +1,13 @@
 import numpy as np
 import random
+import copy
+import csv
 
+def scale_up_2d_list(lst: list, scale_factor: int):
+    scaled_list = np.array(lst)
+    scaled_list = np.repeat(scaled_list, scale_factor, axis=1)
+    scaled_list = np.repeat(scaled_list, scale_factor, axis=0)
+    return scaled_list
 
 class Cell:
     """
@@ -183,6 +190,30 @@ class Maze:
 
         pass
 
+    def get_map_for_raycasting(self):
+        output = []
+        for i in range(len(self.maze)):
+            output.append([])
+            for j in range(len(self.maze[i])):
+                current_element = self.maze[i][j]
+                if isinstance(current_element, str):
+                    if current_element == 'X':
+                        output[i].append(1)
+                    elif current_element == ' ':
+                        output[i].append(0)
+                elif not isinstance(current_element, int):
+                    output[i].append(0)
+                else:
+                    output[i].append(1)
+        return scale_up_2d_list(output, 2)
+
+    def output_maze_to_csv(self, filename: str = 'maze.csv'):
+        with open(filename, mode='w') as mazefile:
+            mazefile = csv.writer(mazefile)
+
+            for row in self.maze:
+                mazefile.writerow(row)
+
     def __str__(self):
         return_string = ''
         for row in self.maze:
@@ -194,7 +225,10 @@ class Maze:
 
 
 if __name__ == "__main__":
-    test_maze = Maze(50, 5)
+    test_maze = Maze(30, 30)
     print(test_maze)
     test_maze.generate_with_recursive_backtracking(0, 0)
     print(test_maze)
+    #raycasting_maze = test_maze.get_map_for_raycasting()
+    #print(raycasting_maze)
+    test_maze.output_maze_to_csv()

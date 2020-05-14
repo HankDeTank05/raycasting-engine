@@ -1,6 +1,6 @@
 import math
 import sys
-
+import world_map as worldmap
 import arcade
 
 SCREEN_WIDTH = 800
@@ -68,6 +68,7 @@ class RaycastingEngine(arcade.Window):
         self.dark_wall_color_list = None
         self.floor_color = None
         self.ceiling_color = None
+        self.minimap = None
 
         # gameplay
         self.move_speed = None
@@ -75,10 +76,7 @@ class RaycastingEngine(arcade.Window):
         self.constant_move_speed = None
         self.constant_rotation_speed = None
 
-    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple,
-              level_map, player_move_speed=MOVE_SPEED, player_rotation_speed=ROTATION_SPEED,
-              floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK,
-              strafe_enabled=True, hide_mouse=True, mouse_look=False):
+    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple, level_map, player_move_speed=MOVE_SPEED, player_rotation_speed=ROTATION_SPEED, floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK, strafe_enabled=True, hide_mouse=True, mouse_look=False):
 
         # level map
         self.map = level_map
@@ -159,6 +157,14 @@ class RaycastingEngine(arcade.Window):
         else:
             self.set_mouse_visible(True)
 
+        self.minimap = []
+        for i in range(len(self.map)):
+            self.minimap.append([])
+            for j in range(len(self.map[i])):
+                self.minimap[i].append(None)
+
+        self.minimap_shape_list = arcade.ShapeElementList()
+
         # gameplay
         self.constant_move_speed = player_move_speed
         self.constant_rotation_speed = player_rotation_speed
@@ -166,6 +172,7 @@ class RaycastingEngine(arcade.Window):
     def on_update(self, delta_time):
         # clear the shape list for the new frame
         self.shape_list = arcade.ShapeElementList()
+        #self.minimap_shape_list = arcade.ShapeElementList()
 
         # set the floor and ceiling colors
         floor = arcade.create_rectangle(
@@ -269,6 +276,7 @@ class RaycastingEngine(arcade.Window):
                 # check if the ray has hit a wall yet
                 if 0 < self.map[map_x][map_y] < 10:
                     hit = 1
+                    self.minimap[map_x][map_y] = 1
                 elif 10 <= self.map[map_x][map_y] < 20:
                     hit = 2
 
@@ -385,14 +393,26 @@ class RaycastingEngine(arcade.Window):
     def on_draw(self):
 
         arcade.start_render()
+        """
+        # draw all the shapes in the listHALF_SQUARE_SIZE = 1
+        MINIMAP_POSITION = 10
 
-        # draw all the shapes in the list
+        minimap_point_list = []
+        minimap_color_list = []
+        for i in range(len(self.minimap)):
+            for j in range(len(self.minimap[i])):
+
+                if self.minimap[i][j] == 1:
+                    minimap_point_list.append((j, i))
+                    minimap_color_list.append([255, 255, 255, 0])
+                else:
+                    for i in range(4):
+                        minimap_color_list.append(arcade.color.RED)"""
+
+        #arcade.draw_points(minimap_point_list, minimap_color_list)
+        #self.minimap_shape_list.append(minimap_shape)
         self.shape_list.draw()
-        '''if len(self.last_frame) > MOTION_PERSISTENCE:
-            for frame in range(MOTION_PERSISTENCE):
-                self.last_frame[len(self.last_frame) - frame - 1].draw()'''
-
-        self.last_frame.append(self.shape_list)
+        #self.minimap_shape_list.draw()
 
         """
         ********************************
@@ -446,6 +466,9 @@ class RaycastingEngine(arcade.Window):
     def on_mouse_press(self, x, y, button, modifiers):
         print(f'press: {button} @ ({x}, {y})')
 
+
+class Minimap:
+    pass
 
 def pick_map(map_number: int):
     maps = [
@@ -501,22 +524,17 @@ def pick_map(map_number: int):
             [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
         ],
-
     ]
     return maps[map_number]
 
 
 def main():
-<<<<<<< Updated upstream
+    world_map_test = worldmap.Maze(10, 10)
+    world_map_test.generate_with_recursive_backtracking(0, 0)
+    print(world_map_test)
     raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
-    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(0), hide_mouse=False,
+    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=False,
                      floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
-=======
-    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
-    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(1), hide_mouse=True,
-                     floor_color=arcade.color.LAWN_GREEN,
-                     ceiling_color=arcade.color.DEEP_SKY_BLUE)
->>>>>>> Stashed changes
 
     arcade.run()
 
