@@ -1,5 +1,3 @@
-import requests
-
-response = requests.get('https://httpbin.org/ip')
-
-print('Your IP is {0}'.format(response.json()['origin']))
+from raycasting import RaycastingEngine
+import worldmap as wm
+import minimap as mm

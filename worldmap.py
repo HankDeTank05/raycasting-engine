@@ -190,8 +190,17 @@ class Maze:
 
         pass
 
+    def generate_metadata(self):
+        """generate metadata about which wall spots are corners, junctions, crosses and ends"""
+        # corner: a wall location, with one x-adjacent wall and one y-adjacent wall
+        # junction: a wall location that is at the center of a T-up of walls
+        # crosses: a wall location that is at the center of a + of walls
+        # ends: a wall location with only one adjacent wall in any direction
+        pass
+
     def get_map_for_raycasting(self):
         output = []
+        metadata = self.generate_metadata()
         for i in range(len(self.maze)):
             output.append([])
             for j in range(len(self.maze[i])):

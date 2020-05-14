@@ -1,6 +1,7 @@
 import math
 import sys
-import world_map as worldmap
+import worldmap as wm
+import minimap as mm
 import arcade
 
 SCREEN_WIDTH = 800
@@ -526,7 +527,7 @@ def pick_map(map_number: int):
 
 
 def main():
-    world_map_test = worldmap.Maze(10, 10)
+    world_map_test = wm.Maze(10, 10)
     world_map_test.generate_with_recursive_backtracking(0, 0)
     print(world_map_test)
     raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
