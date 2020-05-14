@@ -467,9 +467,6 @@ class RaycastingEngine(arcade.Window):
         print(f'press: {button} @ ({x}, {y})')
 
 
-class Minimap:
-    pass
-
 def pick_map(map_number: int):
     maps = [
         [  # simple example map
@@ -533,8 +530,7 @@ def main():
     world_map_test.generate_with_recursive_backtracking(0, 0)
     print(world_map_test)
     raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
-    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=False,
-                     floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
+    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=False, floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
 
     arcade.run()
 
