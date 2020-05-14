@@ -75,17 +75,10 @@ class RaycastingEngine(arcade.Window):
         self.constant_move_speed = None
         self.constant_rotation_speed = None
 
-    def setup(self,
-              player_start: tuple,
-              look_start: tuple,
-              plane_start: tuple,
-              level_map,
-              player_move_speed=MOVE_SPEED,
-              player_rotation_speed=ROTATION_SPEED,
-              floor_color=arcade.color.BLACK,
-              ceiling_color=arcade.color.BLACK,
-              strafe_enabled=True,
-              hide_mouse=True):
+    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple,
+              level_map, player_move_speed=MOVE_SPEED, player_rotation_speed=ROTATION_SPEED,
+              floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK,
+              strafe_enabled=True, hide_mouse=True, mouse_look=False):
 
         # level map
         self.map = level_map
@@ -119,7 +112,7 @@ class RaycastingEngine(arcade.Window):
         self.rotate_left = False
         self.rotate_right = False
 
-        self.mouse_look = False
+        self.mouse_look = mouse_look
         self.last_x = self.screen_width // 2
         self.last_y = self.screen_height // 2
         self.rotate_x_magnitude = 1
@@ -344,7 +337,7 @@ class RaycastingEngine(arcade.Window):
         self.move_speed = frame_time * self.constant_move_speed
         self.rotation_speed = frame_time * self.constant_rotation_speed
         #print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
-        self.rotation_speed *= (self.rotate_x_magnitude/100)
+        #self.rotation_speed *= (self.rotate_x_magnitude/100)
 
         if self.move_forward:
             if not self.map[int(self.pos_x + self.dir_x * self.move_speed)][int(self.pos_y)]:
@@ -514,9 +507,16 @@ def pick_map(map_number: int):
 
 
 def main():
+<<<<<<< Updated upstream
     raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
     raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(0), hide_mouse=False,
                      floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
+=======
+    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
+    raycasting.setup((22, 12), (-1, 0), (0, 0.66), pick_map(1), hide_mouse=True,
+                     floor_color=arcade.color.LAWN_GREEN,
+                     ceiling_color=arcade.color.DEEP_SKY_BLUE)
+>>>>>>> Stashed changes
 
     arcade.run()
 
