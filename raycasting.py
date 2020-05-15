@@ -4,6 +4,7 @@ import worldmap as wm
 import minimap as mm
 import arcade
 import pyautogui
+import copy
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -11,7 +12,10 @@ SCREEN_HEIGHT = 600
 MOVE_SPEED = 5.0
 ROTATION_SPEED = 2.0
 
-MOTION_PERSISTENCE = 3
+MINIMAP_POS_X = 10
+MINIMAP_POS_Y = 30
+
+MINIMAP_SIZE = 2
 
 
 class RaycastingEngine(arcade.Window):
@@ -32,6 +36,11 @@ class RaycastingEngine(arcade.Window):
 
         # level map
         self.map = None
+        self.minimap = None
+        self.mm_bg_points = None
+        self.mm_bg_colors = None
+        self.mm_point_list = None
+        self.mm_color_list = None
 
         # player parameters
         self.pos_x = None
@@ -57,6 +66,8 @@ class RaycastingEngine(arcade.Window):
         self.rotate_x_magnitude = None
         self.rotate_y_magnitude = None  # currently no implementation for this, just a placeholder
 
+        self.mouse_deadzone = None
+
         self.last_frame = None
 
         # performance statistics
@@ -78,10 +89,38 @@ class RaycastingEngine(arcade.Window):
         self.constant_move_speed = None
         self.constant_rotation_speed = None
 
-    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple, level_map, player_move_speed=MOVE_SPEED, player_rotation_speed=ROTATION_SPEED, floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK, strafe_enabled=True, hide_mouse=True, mouse_look=False):
+    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple, level_map, player_move_speed=MOVE_SPEED,
+              player_rotation_speed=ROTATION_SPEED, floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK,
+              strafe_enabled=True, hide_mouse=True, mouse_look=False):
 
         # level map
         self.map = level_map
+        self.minimap = []
+
+        for i in range(len(self.map)):
+            self.minimap.append([])
+            for j in range(len(self.map[i])):
+                if i == 0 or j == 0 or i == len(self.map) - 1 or j == len(self.map[i]) - 1:
+                    self.minimap.append(True)
+                else:
+                    self.minimap.append(False)
+
+        self.mm_bg_points = [
+            # top-left
+            (MINIMAP_POS_X, MINIMAP_POS_Y + len(self.minimap) * MINIMAP_SIZE),
+            # top-right
+            (MINIMAP_POS_X + len(self.minimap[0]) * MINIMAP_SIZE, MINIMAP_POS_Y + len(self.minimap) * MINIMAP_SIZE),
+            # bottom-right
+            (MINIMAP_POS_X + len(self.minimap[0]) * MINIMAP_SIZE, MINIMAP_POS_Y),
+            # bottom-left
+            (MINIMAP_POS_X, MINIMAP_POS_Y)
+        ]
+        self.mm_bg_colors = []
+        for i in range(4):
+            self.mm_bg_colors.append(arcade.color.LAWN_GREEN)
+
+        self.mm_point_list = []
+        self.mm_color_list = []
 
         # player parameters
         self.pos_x = player_start[0]
@@ -160,6 +199,8 @@ class RaycastingEngine(arcade.Window):
         else:
             self.set_mouse_visible(True)
 
+        self.mouse_deadzone = 0
+
         self.minimap = []
         for i in range(len(self.map)):
             self.minimap.append([])
@@ -173,7 +214,7 @@ class RaycastingEngine(arcade.Window):
     def on_update(self, delta_time):
         # clear the shape list for the new frame
         self.shape_list = arcade.ShapeElementList()
-        #self.minimap_shape_list = arcade.ShapeElementList()
+        # self.minimap_shape_list = arcade.ShapeElementList()
 
         # set the floor and ceiling colors
         floor = arcade.create_rectangle(
@@ -277,7 +318,24 @@ class RaycastingEngine(arcade.Window):
                 # check if the ray has hit a wall yet
                 if 0 < self.map[map_x][map_y] < 10:
                     hit = 1
-                    self.minimap[map_x][map_y] = 1
+                    if not self.minimap[map_x][map_y]:
+                        self.minimap[map_x][map_y] = True
+                        # top-left
+                        self.mm_point_list.append(
+                            (MINIMAP_POS_X + map_x * MINIMAP_SIZE, MINIMAP_POS_Y + map_y * MINIMAP_SIZE + MINIMAP_SIZE))
+                        self.mm_color_list.append(arcade.color.BLACK)
+                        # top-right
+                        self.mm_point_list.append((MINIMAP_POS_X + map_x * MINIMAP_SIZE + MINIMAP_SIZE,
+                                                   MINIMAP_POS_Y + map_y * MINIMAP_SIZE + MINIMAP_SIZE))
+                        self.mm_color_list.append(arcade.color.BLACK)
+                        # bottom-right
+                        self.mm_point_list.append(
+                            (MINIMAP_POS_X + map_x * MINIMAP_SIZE + MINIMAP_SIZE, MINIMAP_POS_Y + map_y * MINIMAP_SIZE))
+                        self.mm_color_list.append(arcade.color.BLACK)
+                        # bottom-left
+                        self.mm_point_list.append(
+                            (MINIMAP_POS_X + map_x * MINIMAP_SIZE, MINIMAP_POS_Y + map_y * MINIMAP_SIZE))
+                        self.mm_color_list.append(arcade.color.BLACK)
                 elif 10 <= self.map[map_x][map_y] < 20:
                     hit = 2
 
@@ -330,6 +388,34 @@ class RaycastingEngine(arcade.Window):
         shape = arcade.create_line_generic_with_colors(point_list, color_list, 3)
         self.shape_list.append(shape)
 
+        minimap_background = arcade.create_rectangle_filled_with_colors(self.mm_bg_points, self.mm_bg_colors)
+        self.shape_list.append(minimap_background)
+
+        minimap_shape = arcade.create_rectangles_filled_with_colors(self.mm_point_list, self.mm_color_list)
+        self.shape_list.append(minimap_shape)
+
+        ppos_point_list = []
+        ppos_color_list = []
+
+        # top-left
+        ppos_point_list.append(
+            (MINIMAP_POS_X + self.pos_x * MINIMAP_SIZE, MINIMAP_POS_Y + self.pos_y * MINIMAP_SIZE + MINIMAP_SIZE))
+        ppos_color_list.append(arcade.color.BLUE)
+        # top-right
+        ppos_point_list.append((MINIMAP_POS_X + self.pos_x * MINIMAP_SIZE + MINIMAP_SIZE,
+                                MINIMAP_POS_Y + self.pos_y * MINIMAP_SIZE + MINIMAP_SIZE))
+        ppos_color_list.append(arcade.color.RED)
+        # bottom-right
+        ppos_point_list.append(
+            (MINIMAP_POS_X + self.pos_x * MINIMAP_SIZE + MINIMAP_SIZE, MINIMAP_POS_Y + self.pos_y * MINIMAP_SIZE))
+        ppos_color_list.append(arcade.color.BLUE)
+        # bottom-left
+        ppos_point_list.append((MINIMAP_POS_X + self.pos_x * MINIMAP_SIZE, MINIMAP_POS_Y + self.pos_y * MINIMAP_SIZE))
+        ppos_color_list.append(arcade.color.BLUE)
+
+        player_shape = arcade.create_rectangle_filled_with_colors(ppos_point_list, ppos_color_list)
+        self.shape_list.append(player_shape)
+
         self.old_time = self.time
         self.time += delta_time
 
@@ -345,8 +431,8 @@ class RaycastingEngine(arcade.Window):
 
         self.move_speed = frame_time * self.constant_move_speed
         self.rotation_speed = frame_time * self.constant_rotation_speed
-        #print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
-        #self.rotation_speed *= (self.rotate_x_magnitude/100)
+        # print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
+        self.rotation_speed *= (self.rotate_x_magnitude / 100)
 
         if self.move_forward:
             if not self.map[int(self.pos_x + self.dir_x * self.move_speed)][int(self.pos_y)]:
@@ -394,26 +480,11 @@ class RaycastingEngine(arcade.Window):
     def on_draw(self):
 
         arcade.start_render()
-        """
-        # draw all the shapes in the listHALF_SQUARE_SIZE = 1
-        MINIMAP_POSITION = 10
-
-        minimap_point_list = []
-        minimap_color_list = []
-        for i in range(len(self.minimap)):
-            for j in range(len(self.minimap[i])):
-
-                if self.minimap[i][j] == 1:
-                    minimap_point_list.append((j, i))
-                    minimap_color_list.append([255, 255, 255, 0])
-                else:
-                    for i in range(4):
-                        minimap_color_list.append(arcade.color.RED)"""
-
-        #arcade.draw_points(minimap_point_list, minimap_color_list)
-        #self.minimap_shape_list.append(minimap_shape)
         self.shape_list.draw()
-        #self.minimap_shape_list.draw()
+
+        arcade.draw_text(
+            "Mouse deadzone increase: UP\nMouse deadzone decrease: DOWN\nMouse sensitivity incerase: +\nMouse sensitivity decrease: -",
+            0, 0, color=arcade.color.BLACK)
 
         """
         ********************************
@@ -437,6 +508,16 @@ class RaycastingEngine(arcade.Window):
         if key == arcade.key.ESCAPE:
             sys.exit()
 
+        if key == arcade.key.UP:
+            self.mouse_deadzone += 1
+        elif key == arcade.key.DOWN and self.mouse_deadzone > 0:
+            self.mouse_deadzone -= 1
+
+        if key == arcade.key.EQUAL:
+            self.constant_rotation_speed += 0.5
+        elif key == arcade.key.MINUS and self.constant_rotation_speed >= 1:
+            self.constant_rotation_speed -= 0.5
+
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W:
             self.move_forward = False
@@ -452,16 +533,16 @@ class RaycastingEngine(arcade.Window):
             self.rotate_right = False
 
     def on_mouse_motion(self, x, y, dx, dy):
-        #pyautogui.moveTo(self.screen_width//2, self.screen_height//2)
+        # pyautogui.moveTo(self.screen_width//2, self.screen_height//2)
         self.mouse_look = True
-        if dx > 0:
+        if dx > self.mouse_deadzone:
             self.rotate_right = True
             self.rotate_x_magnitude = abs(dx)
-            #print(self.rotate_x_magnitude)
-        elif dx < 0:
+            # print(self.rotate_x_magnitude)
+        elif dx < -self.mouse_deadzone:
             self.rotate_left = True
             self.rotate_x_magnitude = abs(dx)
-            #print(self.rotate_x_magnitude)
+            # print(self.rotate_x_magnitude)
 
         self.last_x = x
 
@@ -469,32 +550,42 @@ class RaycastingEngine(arcade.Window):
         print(f'press: {button} @ ({x}, {y})')
 
 
+class MenuView(arcade.View):
+
+    def on_show(self):
+        arcade.set_background_color(arcade.color.WHITE)
+
+    def on_draw(self):
+        arcade.start_render()
+        arcade.draw_text("Paused")
+
+
 def pick_map(map_number: int):
     maps = [
         [  # simple example map
             [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  2,  2,  2,  2,  0,  0,  0,  0,  3,  0,  3,  0,  3,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  3,  0,  0,  0,  3,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  2,  0,  2,  2,  0,  0,  0,  0,  3,  0,  3,  0,  3,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  4,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  4,  0,  0,  0,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  0,  0,  0,  5,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  4,  0,  0,  0,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  4,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 0, 0, 0, 5, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
             [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]
         ],
         [  # complex example map
@@ -528,21 +619,22 @@ def pick_map(map_number: int):
 
 
 def main():
-    world_map_test = wm.Maze(10, 10)
+    world_map_test = wm.Maze(30, 30)
     world_map_test.generate_with_recursive_backtracking(0, 0)
-    #print(world_map_test)
+    # print(world_map_test)
     raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
-    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=True, floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
+    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=True,
+                     floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
 
     arcade.run()
 
     while True:
         mouse_x, mouse_y = pyautogui.position()
 
-        if mouse_x == raycasting.screen_width-1:
+        if mouse_x == raycasting.screen_width - 1:
             pyautogui.moveTo(0, mouse_y)
         elif mouse_x == 0:
-            pyautogui.moveTo(raycasting.screen_width-1, mouse_y)
+            pyautogui.moveTo(raycasting.screen_width - 1, mouse_y)
 
 
 if __name__ == "__main__":

@@ -62,7 +62,7 @@ class Minimap:
         for point in update_points:
             row = point[1]
             col = point[0]
-            if row >= 0 and row < self.y_size and col >= 0 and col < self.x_size:
+            if 0 <= row < self.y_size and 0 <= col < self.x_size:
                 self.minimap[row, col] = 1
                 self.changed = True
                 self.revealed_wall_point_list.append((col, row))  # append a tuple for the wall point to the list, in the form of (x_loc, y_loc)

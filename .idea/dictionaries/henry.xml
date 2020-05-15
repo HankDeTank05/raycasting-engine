@@ -2,6 +2,7 @@
   <dictionary name="henry">
     <words>
       <w>gameplay</w>
+      <w>minimap</w>
       <w>raycasting</w>
     </words>
   </dictionary>
