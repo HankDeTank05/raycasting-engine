@@ -3,11 +3,13 @@ import random
 import copy
 import csv
 
+
 def scale_up_2d_list(lst: list, scale_factor: int):
     scaled_list = np.array(lst)
     scaled_list = np.repeat(scaled_list, scale_factor, axis=1)
     scaled_list = np.repeat(scaled_list, scale_factor, axis=0)
     return scaled_list
+
 
 class Cell:
     """
@@ -116,8 +118,8 @@ class Maze:
             self.maze.append([])
             for j in range(self.width):
                 if i % 2 == 1 and j % 2 == 1:
-                    self.maze[i].append(Cell(j//2, i//2, j, i))
-                elif i == 0 or i == self.height-1 or j == 0 or j == self.width-1:
+                    self.maze[i].append(Cell(j // 2, i // 2, j, i))
+                elif i == 0 or i == self.height - 1 or j == 0 or j == self.width - 1:
                     self.maze[i].append('X')
                 else:
                     self.maze[i].append(1)
@@ -134,19 +136,20 @@ class Maze:
             """
             unv_neigh = []
             # check the above neighbor
-            if self.maze[y-1][x] != 'X' and not self.maze[y-2][x].visited:
+            if self.maze[y - 1][x] != 'X' and not self.maze[y - 2][x].visited:
                 unv_neigh.append((x, y - 2, 'u'))
             # check the right neighbor
-            if self.maze[y][x+1] != 'X' and not self.maze[y][x+2].visited:
+            if self.maze[y][x + 1] != 'X' and not self.maze[y][x + 2].visited:
                 unv_neigh.append((x + 2, y, 'r'))
             # check the below neighbor
-            if self.maze[y+1][x] != 'X' and not self.maze[y+2][x].visited:
+            if self.maze[y + 1][x] != 'X' and not self.maze[y + 2][x].visited:
                 unv_neigh.append((x, y + 2, 'd'))
             # check the left neighbor
-            if self.maze[y][x-1] != 'X' and not self.maze[y][x-2].visited:
+            if self.maze[y][x - 1] != 'X' and not self.maze[y][x - 2].visited:
                 unv_neigh.append((x - 2, y, 'l'))
 
             return unv_neigh
+
         stack = []
         if 0 <= start_cell_x < self.cell_width and 0 <= start_cell_y < self.cell_height:
             # convert maze coordinates into 2d list coordinates
@@ -176,13 +179,13 @@ class Maze:
                 chosen_neighbor = random.choice(unvisited_neighbors)
                 # remove the wall between the current_cell and the chosen cell
                 if chosen_neighbor[2] == 'u':
-                    self.maze[current_cell.map_y-1][current_cell.map_x] = ' '
+                    self.maze[current_cell.map_y - 1][current_cell.map_x] = ' '
                 elif chosen_neighbor[2] == 'r':
-                    self.maze[current_cell.map_y][current_cell.map_x+1] = ' '
+                    self.maze[current_cell.map_y][current_cell.map_x + 1] = ' '
                 elif chosen_neighbor[2] == 'd':
-                    self.maze[current_cell.map_y+1][current_cell.map_x] = ' '
+                    self.maze[current_cell.map_y + 1][current_cell.map_x] = ' '
                 elif chosen_neighbor[2] == 'l':
-                    self.maze[current_cell.map_y][current_cell.map_x-1] = ' '
+                    self.maze[current_cell.map_y][current_cell.map_x - 1] = ' '
 
                 chosen_neighbor = self.maze[chosen_neighbor[1]][chosen_neighbor[0]]
                 chosen_neighbor.visited = True
@@ -238,6 +241,6 @@ if __name__ == "__main__":
     print(test_maze)
     test_maze.generate_with_recursive_backtracking(0, 0)
     print(test_maze)
-    #raycasting_maze = test_maze.get_map_for_raycasting()
-    #print(raycasting_maze)
+    # raycasting_maze = test_maze.get_map_for_raycasting()
+    # print(raycasting_maze)
     test_maze.output_maze_to_csv()

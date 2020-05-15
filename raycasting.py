@@ -3,6 +3,7 @@ import sys
 import worldmap as wm
 import minimap as mm
 import arcade
+import pyautogui
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -15,7 +16,7 @@ MOTION_PERSISTENCE = 3
 
 class RaycastingEngine(arcade.Window):
     """
-    This class creates an arcade window subclass, RaycastingEngine, meant for first-person games
+    This class creates an arcade view subclass, RaycastingEngine, meant for first-person games
     """
 
     def __init__(self, width, height, title, fullscreen=True):
@@ -155,6 +156,7 @@ class RaycastingEngine(arcade.Window):
         # hide the mouse by default
         if hide_mouse:
             self.set_mouse_visible(False)
+            self.set_exclusive_mouse(exclusive=True)
         else:
             self.set_mouse_visible(True)
 
@@ -163,8 +165,6 @@ class RaycastingEngine(arcade.Window):
             self.minimap.append([])
             for j in range(len(self.map[i])):
                 self.minimap[i].append(None)
-
-        self.minimap_shape_list = arcade.ShapeElementList()
 
         # gameplay
         self.constant_move_speed = player_move_speed
@@ -452,15 +452,16 @@ class RaycastingEngine(arcade.Window):
             self.rotate_right = False
 
     def on_mouse_motion(self, x, y, dx, dy):
+        #pyautogui.moveTo(self.screen_width//2, self.screen_height//2)
         self.mouse_look = True
-        if x > self.last_x or (x == self.screen_width-1 and dx >= 0):
+        if dx > 0:
             self.rotate_right = True
             self.rotate_x_magnitude = abs(dx)
-            print(self.rotate_x_magnitude)
-        elif x < self.last_x or (x == 0 and dx <= 0):
+            #print(self.rotate_x_magnitude)
+        elif dx < 0:
             self.rotate_left = True
             self.rotate_x_magnitude = abs(dx)
-            print(self.rotate_x_magnitude)
+            #print(self.rotate_x_magnitude)
 
         self.last_x = x
 
@@ -529,11 +530,19 @@ def pick_map(map_number: int):
 def main():
     world_map_test = wm.Maze(10, 10)
     world_map_test.generate_with_recursive_backtracking(0, 0)
-    print(world_map_test)
-    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
-    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=False, floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
+    #print(world_map_test)
+    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
+    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=True, floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
 
     arcade.run()
+
+    while True:
+        mouse_x, mouse_y = pyautogui.position()
+
+        if mouse_x == raycasting.screen_width-1:
+            pyautogui.moveTo(0, mouse_y)
+        elif mouse_x == 0:
+            pyautogui.moveTo(raycasting.screen_width-1, mouse_y)
 
 
 if __name__ == "__main__":
