@@ -124,6 +124,8 @@ class Maze:
             # print(self.maze[i])
 
     def generate_with_recursive_backtracking(self, start_cell_x: int, start_cell_y: int):
+        # IDEA: create a tree representing the possible paths of the maze
+        # IDEA: use ^it^ to determine maze quality?
         def neighbor_checker(x: int, y: int):
             """
             checks all the neighbor cells for ones that have not been visited,
