@@ -1,6 +1,6 @@
 import math
 import sys
-import world_map as worldmap
+import pycasting.worldmap as wm
 import arcade
 
 SCREEN_WIDTH = 800
@@ -76,7 +76,9 @@ class RaycastingEngine(arcade.Window):
         self.constant_move_speed = None
         self.constant_rotation_speed = None
 
-    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple, level_map, player_move_speed=MOVE_SPEED, player_rotation_speed=ROTATION_SPEED, floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK, strafe_enabled=True, hide_mouse=True, mouse_look=False):
+    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple, level_map, player_move_speed=MOVE_SPEED,
+              player_rotation_speed=ROTATION_SPEED, floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK,
+              strafe_enabled=True, hide_mouse=True, mouse_look=False):
 
         # level map
         self.map = level_map
@@ -172,7 +174,7 @@ class RaycastingEngine(arcade.Window):
     def on_update(self, delta_time):
         # clear the shape list for the new frame
         self.shape_list = arcade.ShapeElementList()
-        #self.minimap_shape_list = arcade.ShapeElementList()
+        # self.minimap_shape_list = arcade.ShapeElementList()
 
         # set the floor and ceiling colors
         floor = arcade.create_rectangle(
@@ -344,8 +346,8 @@ class RaycastingEngine(arcade.Window):
 
         self.move_speed = frame_time * self.constant_move_speed
         self.rotation_speed = frame_time * self.constant_rotation_speed
-        #print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
-        #self.rotation_speed *= (self.rotate_x_magnitude/100)
+        # print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
+        # self.rotation_speed *= (self.rotate_x_magnitude/100)
 
         if self.move_forward:
             if not self.map[int(self.pos_x + self.dir_x * self.move_speed)][int(self.pos_y)]:
@@ -409,10 +411,10 @@ class RaycastingEngine(arcade.Window):
                     for i in range(4):
                         minimap_color_list.append(arcade.color.RED)"""
 
-        #arcade.draw_points(minimap_point_list, minimap_color_list)
-        #self.minimap_shape_list.append(minimap_shape)
+        # arcade.draw_points(minimap_point_list, minimap_color_list)
+        # self.minimap_shape_list.append(minimap_shape)
         self.shape_list.draw()
-        #self.minimap_shape_list.draw()
+        # self.minimap_shape_list.draw()
 
         """
         ********************************
@@ -452,7 +454,7 @@ class RaycastingEngine(arcade.Window):
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse_look = True
-        if x > self.last_x or (x == self.screen_width-1 and dx >= 0):
+        if x > self.last_x or (x == self.screen_width - 1 and dx >= 0):
             self.rotate_right = True
             self.rotate_x_magnitude = abs(dx)
             print(self.rotate_x_magnitude)
@@ -467,32 +469,46 @@ class RaycastingEngine(arcade.Window):
         print(f'press: {button} @ ({x}, {y})')
 
 
+class GameView(arcade.View):
+    def __init__(self):
+        super().__init__()
+        self.player_pos = []
+        self.player_direction = []
+        self.cam_plane = []
+        self.levels = []
+        self.settings = {}
+        self.progress = {}
+
+    def setup(self):
+        pass
+
+
 def pick_map(map_number: int):
     maps = [
         [  # simple example map
             [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  2,  2,  2,  2,  0,  0,  0,  0,  3,  0,  3,  0,  3,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  3,  0,  0,  0,  3,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  2,  2,  0,  2,  2,  0,  0,  0,  0,  3,  0,  3,  0,  3,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  4,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  4,  0,  0,  0,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  0,  0,  0,  5,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  4,  0,  0,  0,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
-            [11,  4,  4,  4,  4,  4,  4,  4,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 0, 0, 0, 5, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
             [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]
         ],
         [  # complex example map
@@ -526,11 +542,12 @@ def pick_map(map_number: int):
 
 
 def main():
-    world_map_test = worldmap.Maze(10, 10)
+    world_map_test = wm.Maze(10, 10)
     world_map_test.generate_with_recursive_backtracking(0, 0)
     print(world_map_test)
     raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
-    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=False, floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
+    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=False,
+                     floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
 
     arcade.run()
 
