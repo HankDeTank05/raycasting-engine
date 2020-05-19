@@ -1,20 +1,26 @@
 import math
 import sys
-import generate_maps
+import worldmap as wm
+import minimap as mm
 import arcade
+import pyautogui
+import copy
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
 MOVE_SPEED = 5.0
-ROTATION_SPEED = 2.0
+ROTATION_SPEED = 5.0
 
-MOTION_PERSISTENCE = 3
+MINIMAP_POS_X = 10
+MINIMAP_POS_Y = 50
+
+MINIMAP_SIZE = 5
 
 
 class RaycastingEngine(arcade.Window):
     """
-    This class creates an arcade window subclass, RaycastingEngine, meant for first-person games
+    This class creates an arcade view subclass, RaycastingEngine, meant for first-person games
     """
 
     def __init__(self, width, height, title, fullscreen=True):
@@ -30,6 +36,11 @@ class RaycastingEngine(arcade.Window):
 
         # level map
         self.map = None
+        self.minimap = None
+        self.mm_bg_points = None
+        self.mm_bg_colors = None
+        self.mm_point_list = None
+        self.mm_color_list = None
 
         # player parameters
         self.pos_x = None
@@ -40,6 +51,8 @@ class RaycastingEngine(arcade.Window):
 
         self.plane_x = None
         self.plane_y = None
+
+        self.render_resolution = None
 
         # movement boolean flags
         self.move_forward = None
@@ -55,6 +68,8 @@ class RaycastingEngine(arcade.Window):
         self.rotate_x_magnitude = None
         self.rotate_y_magnitude = None  # currently no implementation for this, just a placeholder
 
+        self.mouse_deadzone = None
+
         self.last_frame = None
 
         # performance statistics
@@ -68,39 +83,68 @@ class RaycastingEngine(arcade.Window):
         self.dark_wall_color_list = None
         self.floor_color = None
         self.ceiling_color = None
+        self.minimap = None
 
         # gameplay
         self.move_speed = None
         self.rotation_speed = None
         self.constant_move_speed = None
         self.constant_rotation_speed = None
-        self.mouse_sensitivity = None
-        self.last_scroll = None
 
-    def setup(self,
-              player_start: tuple,
-              look_start: tuple,
-              plane_start: tuple,
-              level_map,
-              player_move_speed=5.0,
-              player_rotation_speed=2.0,
-              floor_color=arcade.color.BLACK,
-              ceiling_color=arcade.color.BLACK,
-              strafe_enabled=True,
-              hide_mouse=True):
+    def setup(self, player_start: tuple, look_start: tuple, plane_start: tuple, level_map, player_move_speed=MOVE_SPEED,
+              player_rotation_speed=ROTATION_SPEED, floor_color=arcade.color.BLACK, ceiling_color=arcade.color.BLACK,
+              strafe_enabled=True, hide_mouse=True, mouse_look=False):
 
         # level map
         self.map = level_map
+        self.minimap = []
+
+        for i in range(len(self.map)):
+            self.minimap.append([])
+            for j in range(len(self.map[i])):
+                if i == 0 or j == 0 or i == len(self.map) - 1 or j == len(self.map[i]) - 1:
+                    self.minimap.append(True)
+                else:
+                    self.minimap.append(False)
+
+        self.mm_bg_points = [
+            # top-left
+            (MINIMAP_POS_X, MINIMAP_POS_Y + len(self.minimap) * MINIMAP_SIZE),
+            # top-right
+            (MINIMAP_POS_X + len(self.minimap[0]) * MINIMAP_SIZE, MINIMAP_POS_Y + len(self.minimap) * MINIMAP_SIZE),
+            # bottom-right
+            (MINIMAP_POS_X + len(self.minimap[0]) * MINIMAP_SIZE, MINIMAP_POS_Y),
+            # bottom-left
+            (MINIMAP_POS_X, MINIMAP_POS_Y)
+        ]
+        self.mm_bg_colors = []
+        for i in range(4):
+            self.mm_bg_colors.append(arcade.color.LAWN_GREEN)
+
+        self.mm_point_list = []
+        self.mm_color_list = []
 
         # player parameters
         self.pos_x = player_start[0]
         self.pos_y = player_start[1]
+
+        # if the player is not starting in an open space, start searching from the top left of the list for
+        # an open space
+        if self.map[self.pos_y][self.pos_x] != 0:
+            for i in range(len(self.map)):
+                for j in range(len(self.map[i])):
+                    if self.map[i][j] == 0:
+                        self.pos_x = j
+                        self.pos_y = i
+                        break
 
         self.dir_x = look_start[0]
         self.dir_y = look_start[1]
 
         self.plane_x = plane_start[0]
         self.plane_y = plane_start[1]
+
+        self.render_resolution = 10
 
         # movement boolean flags
         self.move_forward = False
@@ -111,7 +155,7 @@ class RaycastingEngine(arcade.Window):
         self.rotate_left = False
         self.rotate_right = False
 
-        self.mouse_look = False
+        self.mouse_look = mouse_look
         self.last_x = self.screen_width // 2
         self.last_y = self.screen_height // 2
         self.rotate_x_magnitude = 1
@@ -155,18 +199,27 @@ class RaycastingEngine(arcade.Window):
         # hide the mouse by default
         if hide_mouse:
             self.set_mouse_visible(False)
+            self.set_exclusive_mouse(exclusive=True)
         else:
             self.set_mouse_visible(True)
+
+        self.mouse_deadzone = 0
+
+        self.minimap = []
+        for i in range(len(self.map)):
+            self.minimap.append([])
+            for j in range(len(self.map[i])):
+                self.minimap[i].append(None)
 
         # gameplay
         self.constant_move_speed = player_move_speed
         self.constant_rotation_speed = player_rotation_speed
-        self.mouse_sensitivity = 50
-        self.last_scroll = 0
+        self.frame_time = None
 
     def on_update(self, delta_time):
         # clear the shape list for the new frame
         self.shape_list = arcade.ShapeElementList()
+        # self.minimap_shape_list = arcade.ShapeElementList()
 
         # set the floor and ceiling colors
         floor = arcade.create_rectangle(
@@ -268,8 +321,28 @@ class RaycastingEngine(arcade.Window):
                     side = 1
 
                 # check if the ray has hit a wall yet
-                if self.map[map_x][map_y].value > 0:
+                if 0 < self.map[map_x][map_y] < 10:
                     hit = 1
+                    if not self.minimap[map_x][map_y]:
+                        self.minimap[map_x][map_y] = True
+                        # top-left
+                        self.mm_point_list.append(
+                            (MINIMAP_POS_X + map_x * MINIMAP_SIZE, MINIMAP_POS_Y + map_y * MINIMAP_SIZE + MINIMAP_SIZE))
+                        self.mm_color_list.append(arcade.color.BLACK)
+                        # top-right
+                        self.mm_point_list.append((MINIMAP_POS_X + map_x * MINIMAP_SIZE + MINIMAP_SIZE,
+                                                   MINIMAP_POS_Y + map_y * MINIMAP_SIZE + MINIMAP_SIZE))
+                        self.mm_color_list.append(arcade.color.BLACK)
+                        # bottom-right
+                        self.mm_point_list.append(
+                            (MINIMAP_POS_X + map_x * MINIMAP_SIZE + MINIMAP_SIZE, MINIMAP_POS_Y + map_y * MINIMAP_SIZE))
+                        self.mm_color_list.append(arcade.color.BLACK)
+                        # bottom-left
+                        self.mm_point_list.append(
+                            (MINIMAP_POS_X + map_x * MINIMAP_SIZE, MINIMAP_POS_Y + map_y * MINIMAP_SIZE))
+                        self.mm_color_list.append(arcade.color.BLACK)
+                elif 10 <= self.map[map_x][map_y] < 20:
+                    hit = 2
 
             if side == 0:
                 perpendicular_wall_dist = (map_x - self.pos_x + (1 - step_x) / 2) / (ray_dir_x + 0.00000001)
@@ -281,6 +354,7 @@ class RaycastingEngine(arcade.Window):
             MODIFY CODE BELOW FOR ALLOWING PITS/HIGH WALLS
             **********************************************
             """
+
             # the height of the wall at the given pixel column
             line_height = int(self.screen_height / (perpendicular_wall_dist + 0.00000001))
 
@@ -290,19 +364,22 @@ class RaycastingEngine(arcade.Window):
             if draw_start < 0:
                 draw_start = 0
 
-            draw_end = line_height / 2 + self.screen_height / 2
+            if hit == 1:  # if the wall is single-height
+                draw_end = line_height / 2 + self.screen_height / 2
+            elif hit == 2:  # otherwise, if the wall is double-height
+                draw_end = line_height + self.screen_height / 2
             if draw_end >= self.screen_height:
                 draw_end = self.screen_height - 1
 
             # set the color with which to draw the given pixel column
             if side == 0:
                 try:
-                    color = self.main_wall_color_list[self.map[map_x][map_y].value]
+                    color = self.main_wall_color_list[self.map[map_x][map_y] % 10]
                 except IndexError:
                     color = arcade.color.YELLOW
             elif side == 1:
                 try:
-                    color = self.dark_wall_color_list[self.map[map_x][map_y].value]
+                    color = self.dark_wall_color_list[self.map[map_x][map_y] % 10]
                 except IndexError:
                     color = arcade.color.DARK_YELLOW
 
@@ -316,35 +393,60 @@ class RaycastingEngine(arcade.Window):
         shape = arcade.create_line_generic_with_colors(point_list, color_list, 3)
         self.shape_list.append(shape)
 
+        minimap_background = arcade.create_rectangle_filled_with_colors(self.mm_bg_points, self.mm_bg_colors)
+        self.shape_list.append(minimap_background)
+
+        minimap_shape = arcade.create_rectangles_filled_with_colors(self.mm_point_list, self.mm_color_list)
+        self.shape_list.append(minimap_shape)
+
+        ppos_point_list = []
+        ppos_color_list = []
+
+        # top-left
+        ppos_point_list.append(
+            (MINIMAP_POS_X + self.pos_x * MINIMAP_SIZE, MINIMAP_POS_Y + self.pos_y * MINIMAP_SIZE + MINIMAP_SIZE))
+        ppos_color_list.append(arcade.color.BLUE)
+        # top-right
+        ppos_point_list.append((MINIMAP_POS_X + self.pos_x * MINIMAP_SIZE + MINIMAP_SIZE,
+                                MINIMAP_POS_Y + self.pos_y * MINIMAP_SIZE + MINIMAP_SIZE))
+        ppos_color_list.append(arcade.color.RED)
+        # bottom-right
+        ppos_point_list.append(
+            (MINIMAP_POS_X + self.pos_x * MINIMAP_SIZE + MINIMAP_SIZE, MINIMAP_POS_Y + self.pos_y * MINIMAP_SIZE))
+        ppos_color_list.append(arcade.color.BLUE)
+        # bottom-left
+        ppos_point_list.append((MINIMAP_POS_X + self.pos_x * MINIMAP_SIZE, MINIMAP_POS_Y + self.pos_y * MINIMAP_SIZE))
+        ppos_color_list.append(arcade.color.BLUE)
+
+        player_shape = arcade.create_rectangle_filled_with_colors(ppos_point_list, ppos_color_list)
+        self.shape_list.append(player_shape)
+
         self.old_time = self.time
         self.time += delta_time
 
         # frame_time is the amount of time this frame spent on screen (in seconds)
-        frame_time = (self.time - self.old_time)
+        self.frame_time = (self.time - self.old_time)
 
-        FPS = 1 / frame_time
+        FPS = 1 / self.frame_time
         """
         ********************************************************
         HERE IS WHERE THE CODE FOR AUTO QUALITY ADJUST SHOULD GO
         ********************************************************
         """
+        if FPS < 60 and self.render_resolution > 2:
+            self.render_resolution -= 1
+        if FPS > 60:
+            self.render_resolution += 1
 
-        self.move_speed = frame_time * self.constant_move_speed
-        self.rotation_speed = frame_time * self.constant_rotation_speed
-        #print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
-        if self.mouse_look:
-            self.rotation_speed *= (self.rotate_x_magnitude/self.mouse_sensitivity)
+        self.move_speed = self.frame_time * self.constant_move_speed
+        self.rotation_speed = self.frame_time * self.constant_rotation_speed
+        # print(f'constant rotation speed: {self.constant_rotation_speed}\nframe time: {frame_time}\nadjusted rotation speed: {self.rotation_speed}')
+        self.rotation_speed *= (self.rotate_x_magnitude / 100)
 
         if self.move_forward:
-            print(f'{1} move')
-            print(f'frame_time = {frame_time}')
-            print(f'self.dir_x = {self.dir_x}')
             if not self.map[int(self.pos_x + self.dir_x * self.move_speed)][int(self.pos_y)]:
-                print(f'{2} move')
                 self.pos_x += self.dir_x * self.move_speed
-                print(f'self.pos_x = {self.pos_x}')
             if not self.map[int(self.pos_x)][int(self.pos_y + self.dir_y * self.move_speed)]:
-                print(f'{3} move')
                 self.pos_y += self.dir_y * self.move_speed
         elif self.move_backward:
             if not self.map[int(self.pos_x - self.dir_x * self.move_speed)][int(self.pos_y)]:
@@ -387,14 +489,11 @@ class RaycastingEngine(arcade.Window):
     def on_draw(self):
 
         arcade.start_render()
-
-        # draw all the shapes in the list
         self.shape_list.draw()
-        if len(self.last_frame) > MOTION_PERSISTENCE:
-            for frame in range(MOTION_PERSISTENCE):
-                self.last_frame[len(self.last_frame) - frame - 1].draw()
 
-        self.last_frame.append(self.shape_list)
+        arcade.draw_text(
+            "Mouse deadzone increase: UP\nMouse deadzone decrease: DOWN\nMouse sensitivity incerase: +\nMouse sensitivity decrease: -",
+            0, 0, color=arcade.color.BLACK)
 
         """
         ********************************
@@ -404,16 +503,12 @@ class RaycastingEngine(arcade.Window):
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W:
-            print('move_forward')
             self.move_forward = True
         if key == arcade.key.A:
-            print('strafe_left')
             self.strafe_left = True
         if key == arcade.key.S:
-            print('move_backward')
             self.move_backward = True
         if key == arcade.key.D:
-            print('strafe_right')
             self.strafe_right = True
         if key == arcade.key.LEFT:
             self.rotate_left = True
@@ -421,6 +516,18 @@ class RaycastingEngine(arcade.Window):
             self.rotate_right = True
         if key == arcade.key.ESCAPE:
             sys.exit()
+
+        # mouse deadzone adjustment
+        if key == arcade.key.UP:
+            self.mouse_deadzone += 1
+        elif key == arcade.key.DOWN and self.mouse_deadzone > 0:
+            self.mouse_deadzone -= 1
+
+        # mouse look sensitivity adjustment
+        if key == arcade.key.EQUAL:
+            self.constant_rotation_speed += 0.5
+        elif key == arcade.key.MINUS and self.constant_rotation_speed >= 1:
+            self.constant_rotation_speed -= 0.5
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W:
@@ -437,57 +544,60 @@ class RaycastingEngine(arcade.Window):
             self.rotate_right = False
 
     def on_mouse_motion(self, x, y, dx, dy):
+        # pyautogui.moveTo(self.screen_width//2, self.screen_height//2)
         self.mouse_look = True
-        if x > self.last_x or (x == self.screen_width-1 and dx >= 0):
+        if dx > self.mouse_deadzone:
             self.rotate_right = True
             self.rotate_x_magnitude = abs(dx)
-            print(self.rotate_x_magnitude)
-        elif x < self.last_x or (x == 0 and dx <= 0):
+            # print(self.rotate_x_magnitude)
+        elif dx < -self.mouse_deadzone:
             self.rotate_left = True
             self.rotate_x_magnitude = abs(dx)
-            print(self.rotate_x_magnitude)
+            # print(self.rotate_x_magnitude)
 
         self.last_x = x
-
-    def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
-        if scroll_y > 0:
-            self.mouse_sensitivity += 2
-        elif scroll_y < 0:
-            self.mouse_sensitivity -= 2
-        if self.mouse_sensitivity <= 1:
-            self.mouse_sensitivity = 1
 
     def on_mouse_press(self, x, y, button, modifiers):
         print(f'press: {button} @ ({x}, {y})')
 
 
+class MenuView(arcade.View):
+
+    def on_show(self):
+        arcade.set_background_color(arcade.color.WHITE)
+
+    def on_draw(self):
+        arcade.start_render()
+        arcade.draw_text("Paused")
+
+
 def pick_map(map_number: int):
     maps = [
         [  # simple example map
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 0, 0, 0, 5, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 0, 0, 0, 5, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11],
+            [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]
         ],
         [  # complex example map
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7, 7, 7],
@@ -515,18 +625,27 @@ def pick_map(map_number: int):
             [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
             [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
         ],
-        generate_maps.generate_maze(24)
     ]
     return maps[map_number]
 
 
 def main():
-    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
-    raycasting.setup((22.5, 22.5), (-1, 0), (0, 0.66), pick_map(2), hide_mouse=False,
-                     floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE,
-                     player_move_speed=5.0, player_rotation_speed=2.0)
+    world_map_test = wm.Maze(10, 10)
+    world_map_test.generate_with_recursive_backtracking(0, 0)
+    # print(world_map_test)
+    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
+    raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=True,
+                     floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
 
     arcade.run()
+
+    while True:
+        mouse_x, mouse_y = pyautogui.position()
+
+        if mouse_x == raycasting.screen_width - 1:
+            pyautogui.moveTo(0, mouse_y)
+        elif mouse_x == 0:
+            pyautogui.moveTo(raycasting.screen_width - 1, mouse_y)
 
 
 if __name__ == "__main__":
