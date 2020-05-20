@@ -1,5 +1,1 @@
-import pygame
-from pygame.locals import *
-
-pygame.init()
-
+import sys, pygame
