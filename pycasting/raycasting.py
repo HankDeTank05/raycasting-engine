@@ -15,7 +15,7 @@ ROTATION_SPEED = 5.0
 MINIMAP_POS_X = 10
 MINIMAP_POS_Y = 50
 
-MINIMAP_SIZE = 5
+MINIMAP_SIZE = 2
 
 
 class RaycastingEngine(arcade.Window):
@@ -36,6 +36,10 @@ class RaycastingEngine(arcade.Window):
 
         # level map
         self.map = None
+
+        self.last_map_x = None
+        self.last_map_y = None
+
         self.minimap = None
         self.mm_bg_points = None
         self.mm_bg_colors = None
@@ -97,6 +101,7 @@ class RaycastingEngine(arcade.Window):
 
         # level map
         self.map = level_map
+
         self.minimap = []
 
         for i in range(len(self.map)):
@@ -309,6 +314,9 @@ class RaycastingEngine(arcade.Window):
                 step_y = 1
                 side_dist_y = (map_y + 1 - self.pos_y) * delta_dist_y
 
+            new_map_x = False
+            new_map_y = False
+
             # continually cast the ray out into the distance until it hits a wall
             while hit == 0:
                 if side_dist_x < side_dist_y:
@@ -323,6 +331,12 @@ class RaycastingEngine(arcade.Window):
                 # check if the ray has hit a wall yet
                 if 0 < self.map[map_x][map_y] < 10:
                     hit = 1
+                    if map_x != self.last_map_x:
+                        new_map_x = True
+                        self.last_map_x = map_x
+                    if map_y != self.last_map_y:
+                        new_map_y = True
+                        self.last_map_y = map_y
                     if not self.minimap[map_x][map_y]:
                         self.minimap[map_x][map_y] = True
                         # top-left
@@ -387,6 +401,8 @@ class RaycastingEngine(arcade.Window):
             draw_end_pos = (x, draw_end)
             point_list.append(draw_start_pos)
             point_list.append(draw_end_pos)
+            if new_map_x or new_map_y:
+                color = arcade.color.BLACK
             for i in range(2):
                 color_list.append(color)
 
@@ -633,7 +649,7 @@ def main():
     world_map_test = wm.Maze(10, 10)
     world_map_test.generate_with_recursive_backtracking(0, 0)
     # print(world_map_test)
-    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=True)
+    raycasting = RaycastingEngine(SCREEN_WIDTH, SCREEN_HEIGHT, "Raycasting Engine", fullscreen=False)
     raycasting.setup((0, 0), (-1, 0), (0, 0.66), world_map_test.get_map_for_raycasting(), hide_mouse=True,
                      floor_color=arcade.color.LAWN_GREEN, ceiling_color=arcade.color.DEEP_SKY_BLUE)
 
