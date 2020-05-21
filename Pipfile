@@ -10,7 +10,7 @@ pylint = "*"
 requests = "*"
 arcade = "*"
 numpy = "*"
-pygame = "*"
+pygame = "==2.0.0.dev6"
 
 [requires]
 python_version = "3.8"

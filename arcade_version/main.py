@@ -1,5 +1,5 @@
 import arcade
-from raycasting import RaycastingEngine
+from arcade_version.raycasting import RaycastingEngine
 import worldmap as wm
 import minimap as mm
 
