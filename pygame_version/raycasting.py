@@ -2,40 +2,40 @@ import math
 import pygame
 import sys
 import numpy as np
-import pygame_version.helpers as helper
+import helpers as helper
+import time
+import copy
 
 pygame.init()
 
-screen_size = screen_width, screen_height = 640, 480
+screen_size = screen_width, screen_height = 320, 200
 
-world_map = np.array(
-    [
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 4, 0, 0, 0, 0, 5, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 4, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 4, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    ]
-)
+world_map = [
+    [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7, 7, 7],
+    [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 7],
+    [4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7],
+    [4, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7],
+    [4, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 7],
+    [4, 0, 4, 0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 0, 7, 7, 7, 7, 7],
+    [4, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 5, 0, 5, 0, 5, 7, 0, 0, 0, 7, 7, 7, 1],
+    [4, 0, 6, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 7, 0, 0, 0, 0, 0, 0, 8],
+    [4, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 1],
+    [4, 0, 8, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 7, 0, 0, 0, 0, 0, 0, 8],
+    [4, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 7, 0, 0, 0, 7, 7, 7, 1],
+    [4, 0, 0, 0, 0, 0, 0, 5, 5, 5, 5, 0, 5, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 1],
+    [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+    [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4],
+    [6, 6, 6, 6, 6, 6, 0, 6, 6, 6, 6, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+    [4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 6, 0, 6, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3],
+    [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
+    [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 2, 0, 0, 5, 0, 0, 2, 0, 0, 0, 2],
+    [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2],
+    [4, 0, 6, 0, 6, 0, 0, 0, 0, 4, 6, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 2],
+    [4, 0, 0, 5, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 2, 0, 2, 2],
+    [4, 0, 6, 0, 6, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 5, 0, 0, 2, 0, 0, 0, 2],
+    [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
+    [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
+]
 
 black = 0, 0, 0
 red = 255, 0, 0
@@ -43,19 +43,20 @@ green = 0, 255, 0
 blue = 0, 0, 255
 white = 255, 255, 255
 
-screen = pygame.display.set_mode(screen_size)
+screen = pygame.display.set_mode(screen_size, flags=pygame.SCALED)
+pygame.display.set_caption("Pygame Raycasting")
 
 pos_x, pos_y = 22, 12  # player starting position
 dir_x, dir_y = -1, 0  # direction they are facing to start (direction vector)
 plane_x, plane_y = 0, 0.66  # camera plane (perpendicular to direction vector)
 
-time = 0  # time of the current frame
+current_time = 0  # time of the current frame
 old_time = 0  # time of the previous frame
 
 clock = pygame.time.Clock()
 
 constant_move_speed = 5.0
-constant_rotation_speed = 3.0
+constant_rotation_speed = -3.0
 
 move_forward = False
 move_backward = False
@@ -65,13 +66,57 @@ rotate_right = False
 draw_points = []
 draw_colors = []
 
+lod = 1
+
+pixels = pygame.PixelArray(screen)
+
+tex_height = 64
+tex_width = 64
+
+texture = []
+
+for tex in range(8):
+    texture.append([])
+    for x in range(tex_width):
+        for y in range(tex_height):
+            xorcolor = max((x * 256 / tex_width), (y * 256 / tex_height))
+            ycolor = y * 256 / tex_height
+            xycolor = y * 128 / tex_height + x * 128 / tex_width
+            if tex == 0:
+                texture[tex].append(pygame.Color(int(65536 * 254 * 1 if x != y and x != tex_width - y else 0)))
+                # print(pygame.Color(texture[tex][x*y]))
+            if tex == 1:
+                texture[tex].append(pygame.Color(int(xycolor + 256 * xycolor + 65536 * xycolor)))
+            if tex == 2:
+                texture[tex].append(pygame.Color(int(256 * xycolor + 65536 * xycolor)))
+            if tex == 3:
+                texture[tex].append(pygame.Color(int(xorcolor + 256 * xorcolor + 65536 * xorcolor)))
+            if tex == 4:
+                texture[tex].append(pygame.Color(int(256 * xorcolor)))
+            if tex == 5:
+                texture[tex].append(pygame.Color(int(65536 * 192 * 1 if x % 16 != 0 and y % 16 != 0 else 0)))
+            if tex == 6:
+                texture[tex].append(pygame.Color(int(65536 * ycolor)))
+            if tex == 7:
+                texture[tex].append(pygame.Color(int(128 + 256 * 128 + 65536 * 128)))
+    # texture[tex] = tuple(texture[tex])
+
+for i in range(8):
+    for x in range(tex_width):
+        for y in range(x):
+            texture[i][tex_width * y + x], texture[i][tex_width * x + y] = texture[i][tex_width * y + x], texture[i][tex_width * x + y]
+    texture[i] = tuple(texture[i])
+
+texture = tuple(texture)
+
 while True:
 
     # process the game logic
-    for pixel_col in range(screen_width):
+    screen.fill(black)
+    # print(pos_x, pos_y)
+    for pixel_col in range(0, screen_width, lod):
         draw_points = []
         draw_colors = []
-
 
         camera_x = helper.get_camera_x(pixel_col, screen_width)
         ray_dir_x, ray_dir_y = helper.get_ray_dirs(dir_x, dir_y, plane_x, plane_y, camera_x)
@@ -96,9 +141,19 @@ while True:
         step_y, side_dist_y = helper.get_step_and_side_dist_xy(ray_dir_y, pos_y, map_y, delta_dist_y)
 
         # DDA
-        side = helper.perform_dda_algorithm(map_x, map_y, step_x, step_y,
-                                            side_dist_x, side_dist_y, delta_dist_x, delta_dist_y,
-                                            world_map)
+        hit = 0
+        side = None
+        while hit == 0:
+            if side_dist_x < side_dist_y:
+                side_dist_x += delta_dist_x
+                map_x += step_x
+                side = 0
+            else:
+                side_dist_y += delta_dist_y
+                map_y += step_y
+                side = 1
+            if world_map[map_x][map_y] > 0:
+                hit = 1
 
         # calculate the distance to the wall that was hit by the current ray
         if side == 0:
@@ -117,98 +172,145 @@ while True:
         if draw_end > screen_height:
             draw_end = screen_height - 1
 
-        # determine the wall color
-        if world_map[map_x, map_y] == 1:
-            color = [255, 0, 0]  # red
-        elif world_map[map_x, map_y] == 2:
-            color = [0, 255, 0]  # green
-        elif world_map[map_x, map_y] == 3:
-            color = [0, 0, 255]  # blue
-        elif world_map[map_x, map_y] == 4:
-            color = [255, 255, 255]  # white
-        else:
-            color = [255, 255, 0]  # yellow
+        # # determine the wall color
+        # if world_map[map_x][map_y] == 1:
+        #     color = [255, 0, 0]  # red
+        # elif world_map[map_x][map_y] == 2:
+        #     color = [0, 255, 0]  # green
+        # elif world_map[map_x][map_y] == 3:
+        #     color = [0, 0, 255]  # blue
+        # elif world_map[map_x][map_y] == 4:
+        #     color = [255, 255, 255]  # white
+        # else:
+        #     color = [255, 255, 0]  # yellow
 
-        if side == 1:
-            for val in range(len(color)):
-                color[val] /= 2
+        # texturing calculations
+        tex_num = world_map[map_x][map_y] - 1  # subtract 1 so that texture[0] can be used
 
-        color = tuple(color)
+        # calculate the value of wall_x
+        wall_x = pos_y + perp_wall_dist * ray_dir_y if side == 0 else pos_x + perp_wall_dist * ray_dir_x
+        wall_x -= math.floor(wall_x)
 
-        draw_start_pair = (pixel_col, int(draw_start))
-        draw_end_pair = (pixel_col, int(draw_end))
+        # x coordinate on the texture
+        tex_x = int(wall_x * tex_width)
+        if side == 0 and ray_dir_x > 0:
+            tex_x = tex_width - tex_x - 1
+        if side == 1 and ray_dir_y < 0:
+            tex_x = tex_width - tex_x - 1
+
+        # how much to increase the texture coordinate per screen pixel
+        step = 1.0 * tex_height / line_height
+        # starting texture coordinate
+        tex_pos = (draw_start - screen_height / 2 + line_height / 2) * step
+        for pixel_row in range(int(draw_start), int(draw_end)):
+            tex_y = int(tex_pos)
+            tex_pos += step
+            color = texture[tex_num][tex_height * tex_x + tex_y]
+            color.a = 255
+
+
+            # if side == 1:
+            #     color.r //= 2
+            #     color.g //= 2
+            #     color.b //= 2
+
+            pixels[pixel_col][pixel_row] = color
+
+            # color = tuple(color)
+
+        # draw_start_pair = (pixel_col, int(draw_start))
+        # draw_end_pair = (pixel_col, int(draw_end))
         # print(draw_start_pair)
         # print(draw_end_pair)
         # print()
 
         # store the points and colors for drawing later
-        draw_points.append((draw_start_pair, draw_end_pair))
-        draw_colors.append(color)
+        # draw_points.append((draw_start_pair, draw_end_pair))
+        # draw_colors.append(color)
+        # pygame.draw.line(screen, color, draw_start_pair, draw_end_pair, lod)
+        # for pixel_row in range(int(draw_start), int(draw_end), lod):
+        #     pixels[pixel_col][pixel_row] = color
 
-    old_time = time  # the time (in milliseconds) of the last frame
-    time = clock.get_time()  # the time (in milliseconds) of the current frame
+    old_time = current_time  # the time (in milliseconds) of the last frame
+    current_time = time.time()  # the time (in milliseconds) of the current frame
 
     # the amount of time this frame has spent onscreen (in seconds)
-    frame_time = (time - old_time) / 1000
+    frame_time = (current_time - old_time) / 1.0
+
+    FPS = 1 / (frame_time + 0.0000001)
+    # print(FPS)
+
+    # if FPS < 25:
+    #     lod += 1
+    # elif FPS > 35 and lod >= 2:
+    #     lod -= 1
 
     # update the screen
-    screen.fill(black)
-    for col in range(len(draw_points)):
-        pygame.draw.line(screen, color, draw_points[col][0], draw_points[col][1], width=1)
-    pygame.display.update()
+    # screen.fill(black)
+    # for col in range(len(draw_points)):
+    #     print(draw_points[col][0])
+    #     pygame.draw.line(screen, draw_colors[col], draw_points[col][0], draw_points[col][1])
+    pygame.display.flip()
 
-    clock.tick()
+    clock.tick(30)
 
     move_speed = frame_time * constant_move_speed
     rotation_speed = frame_time * constant_rotation_speed
+    # print(move_speed)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
         elif event.type == pygame.KEYDOWN:
-            for key in pygame.key.get_pressed():
-                if key == pygame.K_LEFT:
-                    # rotate to the left (camera direction and camera plane must be rotated)
-                    old_dir_x = dir_x
-                    dir_x = dir_x * math.cos(rotation_speed) - dir_y * math.sin(rotation_speed)
-                    dir_y = old_dir_x * math.sin(rotation_speed) + dir_y * math.cos(rotation_speed)
-                    old_plane_x = plane_x
-                    plane_x = plane_x * math.cos(rotation_speed) - plane_y * math.sin(rotation_speed)
-                    plane_y = old_plane_x * math.sin(rotation_speed) + plane_y * math.cos(rotation_speed)
-                    # rotate_left = True
+            if event.key == pygame.K_LEFT:
+                rotate_left = True
+            if event.key == pygame.K_RIGHT:
+                rotate_right = True
+            if event.key == pygame.K_UP:
+                move_forward = True
+            if event.key == pygame.K_DOWN:
+                move_backward = True
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT:
+                rotate_left = False
+            if event.key == pygame.K_RIGHT:
+                rotate_right = False
+            if event.key == pygame.K_UP:
+                move_forward = False
+            if event.key == pygame.K_DOWN:
+                move_backward = False
 
-                if key == pygame.K_RIGHT:
-                    # rotate to the right (camera direction and camera plane must be rotated)
-                    old_dir_x = dir_x
-                    dir_x = dir_x * math.cos(-rotation_speed) - dir_y * math.sin(-rotation_speed)
-                    dir_y = old_dir_x * math.sin(-rotation_speed) + dir_y * math.cos(-rotation_speed)
-                    old_plane_x = plane_x
-                    plane_x = plane_x * math.cos(-rotation_speed) - plane_y * math.sin(-rotation_speed)
-                    plane_y = old_plane_x * math.sin(-rotation_speed) + plane_y * math.cos(-rotation_speed)
-                    # rotate_right = True
+    # print(f'pos_x, pos_y = {pos_x}, {pos_y}')
 
-                if key == pygame.K_UP:
-                    # move forward if there's no wall in front of you
-                    if not world_map[int(pos_x + dir_x * move_speed), int(pos_y)]:
-                        pos_x += dir_x * move_speed
-                    if not world_map[int(pos_x), int(pos_y + dir_y * move_speed)]:
-                        pos_y += dir_y * move_speed
-                    # move_forward = True
+    if move_forward:
+        # move forward if there's no wall in front of you
+        if not world_map[int(pos_x + dir_x * move_speed)][int(pos_y)]:
+            pos_x += dir_x * move_speed
+        if not world_map[int(pos_x)][int(pos_y + dir_y * move_speed)]:
+            pos_y += dir_y * move_speed
+        pass
+    elif move_backward:
+        # move backward if there's no wall behind you
+        if not world_map[int(pos_x - dir_x * move_speed)][int(pos_y)]:
+            pos_x -= dir_x * move_speed
+        if not world_map[int(pos_x)][int(pos_y - dir_y * move_speed)]:
+            pos_y -= dir_y * move_speed
 
-                if key == pygame.K_DOWN:
-                    # move backward if there's no wall behind you
-                    if not world_map[int(pos_x - dir_x * move_speed), int(pos_y)]:
-                        pos_x -= dir_x * move_speed
-                    if not world_map[int(pos_x), int(pos_y - dir_y * move_speed)]:
-                        pos_y -= dir_y * move_speed
-                    # move_backward = True
-        # elif event.type == pygame.KEYUP:
-        #     for key in pygame.key.get_pressed():
-        #         if key == pygame.K_LEFT:
-        #             rotate_left = False
-        #         if key == pygame.K_RIGHT:
-        #             rotate_right = False
-        #         if key == pygame.K_UP:
-        #             move_forward = False
-        #         if key == pygame.K_DOWN:
-        #             move_forward = False
+    if rotate_left:
+        # rotate to the right (camera direction and camera plane must be rotated)
+        old_dir_x = dir_x
+        dir_x = dir_x * math.cos(-rotation_speed) - dir_y * math.sin(-rotation_speed)
+        dir_y = old_dir_x * math.sin(-rotation_speed) + dir_y * math.cos(-rotation_speed)
+        old_plane_x = plane_x
+        plane_x = plane_x * math.cos(-rotation_speed) - plane_y * math.sin(-rotation_speed)
+        plane_y = old_plane_x * math.sin(-rotation_speed) + plane_y * math.cos(-rotation_speed)
+        pass
+    elif rotate_right:
+        # rotate to the left (camera direction and camera plane must be rotated)
+        old_dir_x = dir_x
+        dir_x = dir_x * math.cos(rotation_speed) - dir_y * math.sin(rotation_speed)
+        dir_y = old_dir_x * math.sin(rotation_speed) + dir_y * math.cos(rotation_speed)
+        old_plane_x = plane_x
+        plane_x = plane_x * math.cos(rotation_speed) - plane_y * math.sin(rotation_speed)
+        plane_y = old_plane_x * math.sin(rotation_speed) + plane_y * math.cos(rotation_speed)
+        pass
