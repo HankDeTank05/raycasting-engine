@@ -126,6 +126,8 @@ class Maze:
             # print(self.maze[i])
 
     def generate_with_recursive_backtracking(self, start_cell_x: int, start_cell_y: int):
+        # IDEA: create a tree representing the possible paths of the maze
+        # IDEA: use ^it^ to determine maze quality?
         def neighbor_checker(x: int, y: int):
             """
             checks all the neighbor cells for ones that have not been visited,
@@ -193,17 +195,8 @@ class Maze:
 
         pass
 
-    def generate_metadata(self):
-        """generate metadata about which wall spots are corners, junctions, crosses and ends"""
-        # corner: a wall location, with one x-adjacent wall and one y-adjacent wall
-        # junction: a wall location that is at the center of a T-up of walls
-        # crosses: a wall location that is at the center of a + of walls
-        # ends: a wall location with only one adjacent wall in any direction
-        pass
-
     def get_map_for_raycasting(self):
         output = []
-        metadata = self.generate_metadata()
         for i in range(len(self.maze)):
             output.append([])
             for j in range(len(self.maze[i])):
@@ -217,7 +210,7 @@ class Maze:
                     output[i].append(0)
                 else:
                     output[i].append(1)
-        return scale_up_2d_list(output, 3)
+        return scale_up_2d_list(output, 2)
 
     def output_maze_to_csv(self, filename: str = 'maze.csv'):
         with open(filename, mode='w') as mazefile:

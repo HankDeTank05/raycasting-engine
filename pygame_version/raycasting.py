@@ -6,6 +6,8 @@ import helpers as helper
 import time
 import copy
 import os
+from OpenGL.GL import *
+from OpenGL.GLU import *
 
 
 def load_image(name, colorkey=None):
@@ -25,7 +27,7 @@ def load_image(name, colorkey=None):
 
 pygame.init()
 
-screen_size = screen_width, screen_height = 320, 200
+screen_size = screen_width, screen_height = 128, 100
 
 world_map = [
     [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7, 7, 7],
@@ -63,8 +65,11 @@ blue = 0, 0, 255
 purple = 255, 0, 255
 white = 255, 255, 255
 
-screen = pygame.display.set_mode(screen_size, flags=pygame.SCALED)
+screen = pygame.display.set_mode(screen_size, flags=pygame.NOFRAME|pygame.SCALED)
 pygame.display.set_caption("Pygame Raycasting")
+
+# void gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar);
+# gluPerspective(60, (screen_size[0]/screen_size[1]), 0.1, 100.0)
 
 pos_x, pos_y = 22, 12  # player starting position
 dir_x, dir_y = -1, 0  # direction they are facing to start (direction vector)
@@ -124,155 +129,8 @@ for tex in range(8):
 texture = tuple(texture)
 
 while True:
-
-    # process the game logic
-    screen.fill(black)
-    # print(pos_x, pos_y)
-    for pixel_col in range(0, screen_width, lod):
-        draw_points = []
-        draw_colors = []
-
-        camera_x = helper.get_camera_x(pixel_col, screen_width)
-        ray_dir_x, ray_dir_y = helper.get_ray_dirs(dir_x, dir_y, plane_x, plane_y, camera_x)
-
-        # figure out which box of the map we're in
-        map_x = int(pos_x)
-        map_y = int(pos_y)
-
-        # length of the ray between any vertical grid-line and the next one
-        delta_dist_x = helper.get_delta_dist_x(ray_dir_x, ray_dir_y)
-        # length of the ray between an horizontal grid-line and the next one
-        delta_dist_y = helper.get_delta_dist_y(ray_dir_x, ray_dir_y)
-
-        # calculate step variables and initial side_dist values
-
-        # step_x is the x-direction in which the ray should move when cast (-1 = left, 0 = none, +1 = right)
-        # side_dist_x is the length of the ray from its current position to the next vertical grid-line
-        step_x, side_dist_x = helper.get_step_and_side_dist_xy(ray_dir_x, pos_x, map_x, delta_dist_x)
-
-        # step_y is the length of the ray from its current position to the next horizontal grid-line
-        # side_dist_y is the the y-direction in which the ray should move when cast (-1 = up, 0 = none, +1 = down)
-        step_y, side_dist_y = helper.get_step_and_side_dist_xy(ray_dir_y, pos_y, map_y, delta_dist_y)
-
-        # DDA
-        hit = 0
-        side = None
-        while hit == 0:
-            if side_dist_x < side_dist_y:
-                side_dist_x += delta_dist_x
-                map_x += step_x
-                side = 0
-            else:
-                side_dist_y += delta_dist_y
-                map_y += step_y
-                side = 1
-            if world_map[map_x][map_y] > 0:
-                hit = 1
-
-        # calculate the distance to the wall that was hit by the current ray
-        if side == 0:
-            perp_wall_dist = (map_x - pos_x + (1 - step_x) / 2) / ray_dir_x
-        else:
-            perp_wall_dist = (map_y - pos_y + (1 - step_y) / 2) / ray_dir_y
-
-        # calculate the height of the pixel column to draw
-        line_height = int(screen_height / (perp_wall_dist + 0.0000000001))
-
-        # calculate the lowest and highest pixel to fill in the current column
-        draw_start = -line_height / 2 + screen_height / 2
-        if draw_start < 0:
-            draw_start = 0
-        draw_end = line_height / 2 + screen_height / 2
-        if draw_end > screen_height:
-            draw_end = screen_height - 1
-
-        # # determine the wall color
-        # if world_map[map_x][map_y] == 1:
-        #     color = [255, 0, 0]  # red
-        # elif world_map[map_x][map_y] == 2:
-        #     color = [0, 255, 0]  # green
-        # elif world_map[map_x][map_y] == 3:
-        #     color = [0, 0, 255]  # blue
-        # elif world_map[map_x][map_y] == 4:
-        #     color = [255, 255, 255]  # white
-        # else:
-        #     color = [255, 255, 0]  # yellow
-
-        # texturing calculations
-        tex_num = world_map[map_x][map_y] - 1  # subtract 1 so that texture[0] can be used
-
-        # calculate the value of wall_x
-        wall_x = pos_y + perp_wall_dist * ray_dir_y if side == 0 else pos_x + perp_wall_dist * ray_dir_x
-        wall_x -= math.floor(wall_x)
-
-        # x coordinate on the texture
-        tex_x = int(wall_x * tex_width)
-        if side == 0 and ray_dir_x > 0:
-            tex_x = tex_width - tex_x - 1
-        if side == 1 and ray_dir_y < 0:
-            tex_x = tex_width - tex_x - 1
-
-        # how much to increase the texture coordinate per screen pixel
-        step = 1.0 * tex_height / line_height
-        # starting texture coordinate
-        tex_pos = (draw_start - screen_height / 2 + line_height / 2) * step
-        for pixel_row in range(int(draw_start), int(draw_end)):
-            tex_y = int(tex_pos)
-            tex_pos += step
-            color = texture[tex_num].get_at((tex_x, tex_y))
-            color.a = 255
-
-            if side == 1:
-                color.r //= 2
-                color.g //= 2
-                color.b //= 2
-
-            pixels[pixel_col][pixel_row] = color
-
-            # color = tuple(color)
-
-        # draw_start_pair = (pixel_col, int(draw_start))
-        # draw_end_pair = (pixel_col, int(draw_end))
-        # print(draw_start_pair)
-        # print(draw_end_pair)
-        # print()
-
-        # store the points and colors for drawing later
-        # draw_points.append((draw_start_pair, draw_end_pair))
-        # draw_colors.append(color)
-        # pygame.draw.line(screen, color, draw_start_pair, draw_end_pair, lod)
-        # for pixel_row in range(int(draw_start), int(draw_end), lod):
-        #     pixels[pixel_col][pixel_row] = color
-
-    old_time = current_time  # the time (in milliseconds) of the last frame
-    current_time = time.time()  # the time (in milliseconds) of the current frame
-
-    # the amount of time this frame has spent onscreen (in seconds)
-    frame_time = (current_time - old_time) / 1.0
-
-    FPS = 1 / (frame_time + 0.0000001)
-    # print(FPS)
-
-    # if FPS < 25:
-    #     lod += 1
-    # elif FPS > 35 and lod >= 2:
-    #     lod -= 1
-
-    # update the screen
-    # screen.fill(black)
-    # for col in range(len(draw_points)):
-    #     print(draw_points[col][0])
-    #     pygame.draw.line(screen, draw_colors[col], draw_points[col][0], draw_points[col][1])
-    pygame.display.flip()
-
-    clock.tick(30)
-
-    move_speed = frame_time * constant_move_speed
-    rotation_speed = frame_time * constant_rotation_speed
-    # print(move_speed)
-
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
@@ -327,3 +185,154 @@ while True:
         plane_x = plane_x * math.cos(rotation_speed) - plane_y * math.sin(rotation_speed)
         plane_y = old_plane_x * math.sin(rotation_speed) + plane_y * math.cos(rotation_speed)
         pass
+
+    # process the game logic
+    screen.fill(black)
+    # print(pos_x, pos_y)
+    for pixel_col in range(0, screen_width, lod):
+        draw_points = []
+        draw_colors = []
+
+        camera_x = helper.get_camera_x(pixel_col, screen_width)
+        ray_dir_x, ray_dir_y = helper.get_ray_dirs(dir_x, dir_y, plane_x, plane_y, camera_x)
+
+        # figure out which box of the map we're in
+        map_x = int(pos_x)
+        map_y = int(pos_y)
+
+        # length of the ray between any vertical grid-line and the next one
+        delta_dist_x = helper.get_delta_dist_x(ray_dir_x, ray_dir_y)
+        # length of the ray between an horizontal grid-line and the next one
+        delta_dist_y = helper.get_delta_dist_y(ray_dir_x, ray_dir_y)
+
+        # calculate step variables and initial side_dist values
+
+        # step_x is the x-direction in which the ray should move when cast (-1 = left, 0 = none, +1 = right)
+        # side_dist_x is the length of the ray from its current position to the next vertical grid-line
+        step_x, side_dist_x = helper.get_step_and_side_dist_xy(ray_dir_x, pos_x, map_x, delta_dist_x)
+
+        # step_y is the length of the ray from its current position to the next horizontal grid-line
+        # side_dist_y is the the y-direction in which the ray should move when cast (-1 = up, 0 = none, +1 = down)
+        step_y, side_dist_y = helper.get_step_and_side_dist_xy(ray_dir_y, pos_y, map_y, delta_dist_y)
+
+        # DDA
+        hit = 0
+        side = None
+        distance = 0
+        while hit == 0 and distance < 15:
+            if side_dist_x < side_dist_y:
+                side_dist_x += delta_dist_x
+                map_x += step_x
+                side = 0
+            else:
+                side_dist_y += delta_dist_y
+                map_y += step_y
+                side = 1
+            if world_map[map_x][map_y] > 0:
+                hit = 1
+            distance += 1
+
+        if hit == 1:
+            # calculate the distance to the wall that was hit by the current ray
+            if side == 0:
+                perp_wall_dist = (map_x - pos_x + (1 - step_x) / 2) / ray_dir_x
+            else:
+                perp_wall_dist = (map_y - pos_y + (1 - step_y) / 2) / ray_dir_y
+
+            # calculate the height of the pixel column to draw
+            line_height = int(screen_height / (perp_wall_dist + 0.0000000001))
+
+            # calculate the lowest and highest pixel to fill in the current column
+            draw_start = -line_height / 2 + screen_height / 2
+            if draw_start < 0:
+                draw_start = 0
+            draw_end = line_height / 2 + screen_height / 2
+            if draw_end > screen_height:
+                draw_end = screen_height - 1
+
+            # # determine the wall color
+            # if world_map[map_x][map_y] == 1:
+            #     color = [255, 0, 0]  # red
+            # elif world_map[map_x][map_y] == 2:
+            #     color = [0, 255, 0]  # green
+            # elif world_map[map_x][map_y] == 3:
+            #     color = [0, 0, 255]  # blue
+            # elif world_map[map_x][map_y] == 4:
+            #     color = [255, 255, 255]  # white
+            # else:
+            #     color = [255, 255, 0]  # yellow
+
+            # texturing calculations
+            tex_num = world_map[map_x][map_y] - 1  # subtract 1 so that texture[0] can be used
+
+            # calculate the value of wall_x
+            wall_x = pos_y + perp_wall_dist * ray_dir_y if side == 0 else pos_x + perp_wall_dist * ray_dir_x
+            wall_x -= math.floor(wall_x)
+
+            # x coordinate on the texture
+            tex_x = int(wall_x * tex_width)
+            if side == 0 and ray_dir_x > 0:
+                tex_x = tex_width - tex_x - 1
+            if side == 1 and ray_dir_y < 0:
+                tex_x = tex_width - tex_x - 1
+
+            # how much to increase the texture coordinate per screen pixel
+            step = 1.0 * tex_height / line_height
+            # starting texture coordinate
+            tex_pos = (draw_start - screen_height / 2 + line_height / 2) * step
+            for pixel_row in range(int(draw_start), int(draw_end), lod):
+                tex_y = int(tex_pos)
+                tex_pos += step
+                color = texture[tex_num].get_at((tex_x, tex_y))
+                color.a = 255
+
+                if side == 1:
+                    color.r //= 2
+                    color.g //= 2
+                    color.b //= 2
+
+                pixels[pixel_col][pixel_row] = color
+
+                # color = tuple(color)
+
+            # draw_start_pair = (pixel_col, int(draw_start))
+            # draw_end_pair = (pixel_col, int(draw_end))
+            # print(draw_start_pair)
+            # print(draw_end_pair)
+            # print()
+
+            # store the points and colors for drawing later
+            # draw_points.append((draw_start_pair, draw_end_pair))
+            # draw_colors.append(color)
+            # pygame.draw.line(screen, color, draw_start_pair, draw_end_pair, lod)
+            # for pixel_row in range(int(draw_start), int(draw_end), lod):
+            #     pixels[pixel_col][pixel_row] = color
+
+    old_time = current_time  # the time (in milliseconds) of the last frame
+    current_time = time.time()  # the time (in milliseconds) of the current frame
+
+    # the amount of time this frame has spent onscreen (in seconds)
+    frame_time = (current_time - old_time) / 1.0
+
+    FPS = 1 / (frame_time + 0.0000001)
+    # print(FPS)
+
+    # if FPS < 25:
+    #     lod += 1
+    # elif FPS > 35 and lod >= 2:
+    #     lod -= 1
+
+    # update the screen
+    # screen.fill(black)
+    # for col in range(len(draw_points)):
+    #     print(draw_points[col][0])
+    #     pygame.draw.line(screen, draw_colors[col], draw_points[col][0], draw_points[col][1])
+    pygame.display.flip()
+
+    clock.tick(15)
+
+    move_speed = frame_time * constant_move_speed
+    rotation_speed = frame_time * constant_rotation_speed
+    # print(move_speed)
+
+
