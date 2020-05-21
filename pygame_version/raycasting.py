@@ -6,8 +6,8 @@ import helpers as helper
 import time
 import copy
 import os
-from OpenGL.GL import *
-from OpenGL.GLU import *
+# from OpenGL.GL import *
+# from OpenGL.GLU import *
 
 
 def load_image(name, colorkey=None):
@@ -65,7 +65,7 @@ blue = 0, 0, 255
 purple = 255, 0, 255
 white = 255, 255, 255
 
-screen = pygame.display.set_mode(screen_size, flags=pygame.NOFRAME|pygame.SCALED)
+screen = pygame.display.set_mode(screen_size, flags=pygame.SCALED)
 pygame.display.set_caption("Pygame Raycasting")
 
 # void gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar);
@@ -188,7 +188,71 @@ while True:
 
     # process the game logic
     screen.fill(black)
-    # print(pos_x, pos_y)
+    # FLOOR CASTING
+    for pixel_row in range(0, screen_height, lod):
+        # ray_dir for leftmost ray (x = 0) and rightmost ray (x = screen_width)
+        ray_dir_x0 = dir_x - plane_x
+        ray_dir_y0 = dir_y - plane_y
+        ray_dir_x1 = dir_x + plane_x
+        ray_dir_y1 = dir_y + plane_y
+
+        # current y position compared to the center of the screen (the horizon)
+        p = int(pixel_row - screen_height / 2)
+
+        # vertical position of the camera
+        pos_z = 0.5 * screen_height
+
+        # horizontal distance from the camera to the floor for the current row.
+        # 0.5 is the z position exactly in the middle between the floor and ceiling.
+        row_distance = pos_z / p
+
+        # calculate the real world step vector we have to add each for x (parallel to camera plane)
+        # adding step by step avoids multiplications with a weight in the inner loop
+        floor_step_x = row_distance * (ray_dir_x1 - ray_dir_x0) / screen_width
+        floor_step_y = row_distance * (ray_dir_y1 - ray_dir_y0) / screen_width
+
+        # real world coordinates of the leftmmost column. this will be updated as we step to the right
+        floor_x = pos_x + row_distance * ray_dir_x0
+        floor_y = pos_y + row_distance * ray_dir_y0
+
+        for pixel_col in range(screen_width):
+            # the cell coord is simply gotten from the integer parts of floor_x and floor_y
+            try:
+                cell_x = floor_x
+            except IndexError:
+                print('oopsies')
+                print(floor_x)
+                sys.exit()
+            cell_y = floor_y
+
+            # get the texture coordinate from the fractional part
+            tx = int(tex_width * (floor_x - cell_x))
+            ty = int(tex_height * (floor_y - cell_y))
+
+            floor_x += floor_step_x
+            floor_y += floor_step_y
+
+            # choose texture and draw the pixel
+            floor_texture = 3
+            ceiling_texture = 6
+
+            # floor
+            color = texture[floor_texture].get_at((tx, ty))
+            color.a = 255
+            color.r //= 1
+            color.g //= 1
+            color.b //= 1
+            pixels[pixel_row][pixel_col] = color
+
+            # ceiling (symmetrical at screen_height-pixel_row - 1 instead of pixel_row)
+            # color = texture[ceiling_texture].get_at((tx, ty))
+            # color.a = 255
+            # color.r //= 1
+            # color.g //= 1
+            # color.b //= 1
+            # pixels[screen_height - pixel_row - 1][pixel_col] = color
+
+    # WALL CASTING
     for pixel_col in range(0, screen_width, lod):
         draw_points = []
         draw_colors = []
