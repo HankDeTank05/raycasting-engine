@@ -1,5 +1,4 @@
 import math
-
 import pygame
 import sys
 import numpy as np
@@ -63,13 +62,17 @@ move_backward = False
 rotate_left = False
 rotate_right = False
 
+draw_points = []
+draw_colors = []
+
 while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
 
     # process the game logic
     for pixel_col in range(screen_width):
+        draw_points = []
+        draw_colors = []
+
+
         camera_x = helper.get_camera_x(pixel_col, screen_width)
         ray_dir_x, ray_dir_y = helper.get_ray_dirs(dir_x, dir_y, plane_x, plane_y, camera_x)
 
@@ -92,7 +95,6 @@ while True:
         # side_dist_y is the the y-direction in which the ray should move when cast (-1 = up, 0 = none, +1 = down)
         step_y, side_dist_y = helper.get_step_and_side_dist_xy(ray_dir_y, pos_y, map_y, delta_dist_y)
 
-        print(f'{side_dist_x}, {side_dist_y}')
         # DDA
         side = helper.perform_dda_algorithm(map_x, map_y, step_x, step_y,
                                             side_dist_x, side_dist_y, delta_dist_x, delta_dist_y,
@@ -133,8 +135,15 @@ while True:
 
         color = tuple(color)
 
-        # draw the column of pixels
-        pygame.draw.line(screen, color, (pixel_col, int(draw_start)), (pixel_col, int(draw_end)), width=1)
+        draw_start_pair = (pixel_col, int(draw_start))
+        draw_end_pair = (pixel_col, int(draw_end))
+        # print(draw_start_pair)
+        # print(draw_end_pair)
+        # print()
+
+        # store the points and colors for drawing later
+        draw_points.append((draw_start_pair, draw_end_pair))
+        draw_colors.append(color)
 
     old_time = time  # the time (in milliseconds) of the last frame
     time = clock.get_time()  # the time (in milliseconds) of the current frame
@@ -143,8 +152,10 @@ while True:
     frame_time = (time - old_time) / 1000
 
     # update the screen
-    pygame.display.fill(black)
-    pygame.display.flip()
+    screen.fill(black)
+    for col in range(len(draw_points)):
+        pygame.draw.line(screen, color, draw_points[col][0], draw_points[col][1], width=1)
+    pygame.display.update()
 
     clock.tick()
 
