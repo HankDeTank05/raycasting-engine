@@ -105,3 +105,5 @@ def perform_dda_algorithm(map_x, map_y, step_x, step_y, side_dist_x, side_dist_y
 
 def get_perp_wall_dist(map_xy, pos_xy, step_xy, ray_dir_xy):
     return (map_xy - pos_xy + (1 - step_xy) / 2) / ray_dir_xy
+
+

@@ -5,6 +5,23 @@ import numpy as np
 import helpers as helper
 import time
 import copy
+import os
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('pics', name)
+    try:
+        image = pygame.image.load(fullname)
+    except pygame.error as message:
+        print('Cannot load image:', name)
+        raise SystemExit(message)
+    image = image.convert()
+    if colorkey is not None:
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey, RLEACCEL)
+    return image
+
 
 pygame.init()
 
@@ -39,8 +56,11 @@ world_map = [
 
 black = 0, 0, 0
 red = 255, 0, 0
+yellow = 255, 255, 0
 green = 0, 255, 0
+cyan = 0, 255, 255
 blue = 0, 0, 255
+purple = 255, 0, 255
 white = 255, 255, 255
 
 screen = pygame.display.set_mode(screen_size, flags=pygame.SCALED)
@@ -77,35 +97,29 @@ texture = []
 
 for tex in range(8):
     texture.append([])
-    for x in range(tex_width):
-        for y in range(tex_height):
-            xorcolor = max((x * 256 / tex_width), (y * 256 / tex_height))
-            ycolor = y * 256 / tex_height
-            xycolor = y * 128 / tex_height + x * 128 / tex_width
-            if tex == 0:
-                texture[tex].append(pygame.Color(int(65536 * 254 * 1 if x != y and x != tex_width - y else 0)))
-                # print(pygame.Color(texture[tex][x*y]))
-            if tex == 1:
-                texture[tex].append(pygame.Color(int(xycolor + 256 * xycolor + 65536 * xycolor)))
-            if tex == 2:
-                texture[tex].append(pygame.Color(int(256 * xycolor + 65536 * xycolor)))
-            if tex == 3:
-                texture[tex].append(pygame.Color(int(xorcolor + 256 * xorcolor + 65536 * xorcolor)))
-            if tex == 4:
-                texture[tex].append(pygame.Color(int(256 * xorcolor)))
-            if tex == 5:
-                texture[tex].append(pygame.Color(int(65536 * 192 * 1 if x % 16 != 0 and y % 16 != 0 else 0)))
-            if tex == 6:
-                texture[tex].append(pygame.Color(int(65536 * ycolor)))
-            if tex == 7:
-                texture[tex].append(pygame.Color(int(128 + 256 * 128 + 65536 * 128)))
+    if tex == 0:
+        texture[tex] = load_image('eagle.png')
+    if tex == 1:
+        texture[tex] = load_image('redbrick.png')
+    if tex == 2:
+        texture[tex] = load_image('purplestone.png')
+    if tex == 3:
+        texture[tex] = load_image('greystone.png')
+    if tex == 4:
+        texture[tex] = load_image('bluestone.png')
+    if tex == 5:
+        texture[tex] = load_image('mossy.png')
+    if tex == 6:
+        texture[tex] = load_image('wood.png')
+    if tex == 7:
+        texture[tex] = load_image('colorstone.png')
     # texture[tex] = tuple(texture[tex])
 
-for i in range(8):
-    for x in range(tex_width):
-        for y in range(x):
-            texture[i][tex_width * y + x], texture[i][tex_width * x + y] = texture[i][tex_width * y + x], texture[i][tex_width * x + y]
-    texture[i] = tuple(texture[i])
+# for i in range(8):
+#     for x in range(tex_width):
+#         for y in range(x):
+#             texture[i][tex_width * y + x], texture[i][tex_width * x + y] = texture[i][tex_width * y + x], texture[i][tex_width * x + y]
+#     texture[i] = tuple(texture[i])
 
 texture = tuple(texture)
 
@@ -205,14 +219,13 @@ while True:
         for pixel_row in range(int(draw_start), int(draw_end)):
             tex_y = int(tex_pos)
             tex_pos += step
-            color = texture[tex_num][tex_height * tex_x + tex_y]
+            color = texture[tex_num].get_at((tex_x, tex_y))
             color.a = 255
 
-
-            # if side == 1:
-            #     color.r //= 2
-            #     color.g //= 2
-            #     color.b //= 2
+            if side == 1:
+                color.r //= 2
+                color.g //= 2
+                color.b //= 2
 
             pixels[pixel_col][pixel_row] = color
 
