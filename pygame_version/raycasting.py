@@ -11,7 +11,7 @@ import os
 
 
 def load_image(name, colorkey=None):
-    fullname = os.path.join('pics', name)
+    fullname = os.path.join('pygame_version/pics', name)
     try:
         image = pygame.image.load(fullname)
     except pygame.error as message:
@@ -188,7 +188,9 @@ while True:
 
     # process the game logic
     screen.fill(black)
+    # *************
     # FLOOR CASTING
+    # *************
     for pixel_row in range(0, screen_height, lod):
         # ray_dir for leftmost ray (x = 0) and rightmost ray (x = screen_width)
         ray_dir_x0 = dir_x - plane_x
@@ -252,7 +254,9 @@ while True:
             # color.b //= 1
             # pixels[screen_height - pixel_row - 1][pixel_col] = color
 
+    # ************
     # WALL CASTING
+    # ************
     for pixel_col in range(0, screen_width, lod):
         draw_points = []
         draw_colors = []
