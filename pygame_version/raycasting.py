@@ -27,11 +27,11 @@ def load_image(name, colorkey=None):
 
 pygame.init()
 
-screen_size = screen_width, screen_height = 128, 100
+screen_size = screen_width, screen_height = 320, 200
 
 player_height = screen_height / 2
 
-world_map = [
+world_map = np.array([
     [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7, 7, 7],
     [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 7],
     [4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7],
@@ -56,7 +56,7 @@ world_map = [
     [4, 0, 6, 0, 6, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 5, 0, 0, 2, 0, 0, 0, 2],
     [4, 0, 0, 0, 0, 0, 0, 0, 0, 4, 6, 0, 6, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2],
     [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
-]
+])
 
 black = 0, 0, 0
 red = 255, 0, 0
@@ -130,6 +130,12 @@ for tex in range(8):
 
 texture = tuple(texture)
 
+floor_texture = 3
+ceiling_texture = 6
+
+floorcast_tech = ['scanline', 'vertical']
+floorcast_method = 'vertical'
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -157,16 +163,16 @@ while True:
 
     if move_forward:
         # move forward if there's no wall in front of you
-        if not world_map[int(pos_x + dir_x * move_speed)][int(pos_y)]:
+        if not world_map[int(pos_x + dir_x * move_speed), int(pos_y)]:
             pos_x += dir_x * move_speed
-        if not world_map[int(pos_x)][int(pos_y + dir_y * move_speed)]:
+        if not world_map[int(pos_x), int(pos_y + dir_y * move_speed)]:
             pos_y += dir_y * move_speed
         pass
     elif move_backward:
         # move backward if there's no wall behind you
-        if not world_map[int(pos_x - dir_x * move_speed)][int(pos_y)]:
+        if not world_map[int(pos_x - dir_x * move_speed), int(pos_y)]:
             pos_x -= dir_x * move_speed
-        if not world_map[int(pos_x)][int(pos_y - dir_y * move_speed)]:
+        if not world_map[int(pos_x), int(pos_y - dir_y * move_speed)]:
             pos_y -= dir_y * move_speed
 
     if rotate_left:
@@ -190,69 +196,75 @@ while True:
 
     # process the game logic
     screen.fill(black)
-    # *************
-    # FLOOR CASTING
-    # *************
-    for pixel_row in range(0, screen_height, lod):
 
-        # ray direction for the leftmost ray (x = 0)
-        ray_dir_x0 = dir_x - plane_x
-        ray_dir_y0 = dir_y - plane_y
+    if floorcast_method == floorcast_tech[0]:
+        # *************
+        # FLOOR CASTING method 1: scanline
+        # this method renders in horizontal scanlines, and renders the whole screen's pixels. This is inefficient
+        # because some pixels are drawn over again when casting for walls
+        # *************
+        for pixel_row in range(0, screen_height, lod):
 
-        # ray direction for the rightmost ray (x = screen_width)
-        ray_dir_x1 = dir_x + plane_x
-        ray_dir_y1 = dir_y + plane_y
+            # ray direction for the leftmost ray (x = 0)
+            ray_dir_x0 = dir_x - plane_x
+            ray_dir_y0 = dir_y - plane_y
 
-        # current y position compared to the center of the screem
-        p = int(pixel_row - screen_height / 2)
+            # ray direction for the rightmost ray (x = screen_width)
+            ray_dir_x1 = dir_x + plane_x
+            ray_dir_y1 = dir_y + plane_y
 
-        if p == 0:
-            continue
+            # current y position compared to the center of the screem
+            p = int(pixel_row - screen_height / 2)
 
-        # vertical position of the camera
-        pos_z = float(0.5 * screen_height)
+            if p == 0:
+                continue
 
-        # horizontal distance from the camera to the floor for the current row
-        # 0.5 is the current z position exactly in the middle between the floor and the ceiling
-        row_distance = float(pos_z / p)
+            # vertical position of the camera
+            pos_z = float(0.5 * screen_height)
 
-        # calculate the real-world step vector we have to add for each x (parallel to the camera plane)
-        # adding step-by-step avoids multiplication with a weight in the inner loop
-        floor_step_x = row_distance * (ray_dir_x1 - ray_dir_x0) / screen_width
-        floor_step_y = row_distance * (ray_dir_y1 - ray_dir_y0) / screen_width
+            # horizontal distance from the camera to the floor for the current row
+            # 0.5 is the current z position exactly in the middle between the floor and the ceiling
+            row_distance = float(pos_z / p)
 
-        # real-world coordinates of the leftmost column. this will be updated as we step to the right
-        floor_x = pos_x + row_distance * ray_dir_x0
-        floor_y = pos_y + row_distance * ray_dir_y0
+            # calculate the real-world step vector we have to add for each x (parallel to the camera plane)
+            # adding step-by-step avoids multiplication with a weight in the inner loop
+            floor_step_x = row_distance * (ray_dir_x1 - ray_dir_x0) / screen_width
+            floor_step_y = row_distance * (ray_dir_y1 - ray_dir_y0) / screen_width
 
-        for pixel_col in range(1, screen_width, lod):
-            # the cell coordinate is simply gotten from truncating floor_x and floor_y
-            cell_x = int(floor_x)
-            cell_y = int(floor_y)
+            # real-world coordinates of the leftmost column. this will be updated as we step to the right
+            floor_x = pos_x + row_distance * ray_dir_x0
+            floor_y = pos_y + row_distance * ray_dir_y0
 
-            # get the texture coordinate from the fractional part that was truncated off
-            tx = int(tex_width * (floor_x - cell_x))
-            ty = int(tex_height * (floor_y - cell_y))
+            for pixel_col in range(0, screen_width, lod):
+                # the cell coordinate is simply gotten from truncating floor_x and floor_y
+                cell_x = int(floor_x)
+                cell_y = int(floor_y)
 
-            floor_x += floor_step_x
-            floor_y += floor_step_y
+                # get the texture coordinate from the fractional part that was truncated off
+                tx = int(tex_width * (floor_x - cell_x))
+                if tx < 0:
+                    tx = 0
+                elif tx >= tex_width:
+                    tx = tex_width - 1
 
-            # choose a texture and draw the pixel
-            floor_texture = 3
-            ceiling_texture = 6
-            color = None
+                ty = int(tex_height * (floor_y - cell_y))
+                if ty < 0:
+                    ty = 0
+                elif ty >= tex_height:
+                    tx = tex_height - 1
 
-            # floor
-            try:
+                floor_x += floor_step_x
+                floor_y += floor_step_y
+
+                # choose a texture and draw the pixel
+
+                # floor
                 color = texture[floor_texture].get_at((tx, ty))
-            except IndexError:
-                print(tx, ty)
-                sys.exit()
-            pixels[pixel_col][pixel_row] = color
+                pixels[pixel_col][pixel_row] = color
 
-            # ceiling
-            color = texture[ceiling_texture].get_at((tx, ty))
-            pixels[screen_height - pixel_col - 1][pixel_row] = color
+                # ceiling
+                color = texture[ceiling_texture].get_at((tx, ty))
+                pixels[pixel_col][screen_height - pixel_row - 1] = color
 
     # ************
     # WALL CASTING
@@ -287,7 +299,7 @@ while True:
         hit = 0
         side = None
         distance = 0
-        while hit == 0 and distance < 15:
+        while hit == 0:
             if side_dist_x < side_dist_y:
                 side_dist_x += delta_dist_x
                 map_x += step_x
@@ -296,75 +308,117 @@ while True:
                 side_dist_y += delta_dist_y
                 map_y += step_y
                 side = 1
-            if world_map[map_x][map_y] > 0:
+            if world_map[map_x, map_y] > 0:
                 hit = 1
             distance += 1
 
-        if hit == 1:
-            # calculate the distance to the wall that was hit by the current ray
-            if side == 0:
-                perp_wall_dist = (map_x - pos_x + (1 - step_x) / 2) / ray_dir_x
-            else:
-                perp_wall_dist = (map_y - pos_y + (1 - step_y) / 2) / ray_dir_y
+        # calculate the distance to the wall that was hit by the current ray
+        if side == 0:
+            perp_wall_dist = (map_x - pos_x + (1 - step_x) / 2) / ray_dir_x
+        else:
+            perp_wall_dist = (map_y - pos_y + (1 - step_y) / 2) / ray_dir_y
 
-            # calculate the height of the pixel column to draw
-            line_height = int(screen_height / (perp_wall_dist + 0.0000000001))
+        # calculate the height of the pixel column to draw
+        line_height = int(screen_height / (perp_wall_dist + 0.0000000001))
 
-            # calculate the lowest and highest pixel to fill in the current column
-            draw_start = -line_height / 2 + screen_height / 2
-            if draw_start < 0:
-                draw_start = 0
-            draw_end = line_height / 2 + screen_height / 2
-            if draw_end > screen_height:
-                draw_end = screen_height - 1
+        # calculate the lowest and highest pixel to fill in the current column
+        draw_start = -line_height / 2 + screen_height / 2
+        if draw_start < 0:
+            draw_start = 0
+        draw_end = line_height / 2 + screen_height / 2
+        if draw_end > screen_height:
+            draw_end = screen_height - 1
 
-            # # determine the wall color
-            # if world_map[map_x][map_y] == 1:
-            #     color = [255, 0, 0]  # red
-            # elif world_map[map_x][map_y] == 2:
-            #     color = [0, 255, 0]  # green
-            # elif world_map[map_x][map_y] == 3:
-            #     color = [0, 0, 255]  # blue
-            # elif world_map[map_x][map_y] == 4:
-            #     color = [255, 255, 255]  # white
-            # else:
-            #     color = [255, 255, 0]  # yellow
+        # # determine the wall color
+        # if world_map[map_x][map_y] == 1:
+        #     color = [255, 0, 0]  # red
+        # elif world_map[map_x][map_y] == 2:
+        #     color = [0, 255, 0]  # green
+        # elif world_map[map_x][map_y] == 3:
+        #     color = [0, 0, 255]  # blue
+        # elif world_map[map_x][map_y] == 4:
+        #     color = [255, 255, 255]  # white
+        # else:
+        #     color = [255, 255, 0]  # yellow
 
-            # texturing calculations
-            tex_num = world_map[map_x][map_y] - 1  # subtract 1 so that texture[0] can be used
+        # texturing calculations
+        tex_num = world_map[map_x, map_y] - 1  # subtract 1 so that texture[0] can be used
 
-            # calculate the value of wall_x
-            wall_x = pos_y + perp_wall_dist * ray_dir_y if side == 0 else pos_x + perp_wall_dist * ray_dir_x
-            wall_x -= math.floor(wall_x)
+        # calculate the value of wall_x
+        wall_x = pos_y + perp_wall_dist * ray_dir_y if side == 0 else pos_x + perp_wall_dist * ray_dir_x
+        wall_x -= math.floor(wall_x)
 
-            # x coordinate on the texture
-            tex_x = int(wall_x * tex_width)
+        # x coordinate on the texture
+        tex_x = int(wall_x * tex_width)
+        if side == 0 and ray_dir_x > 0:
+            tex_x = tex_width - tex_x - 1
+        if side == 1 and ray_dir_y < 0:
+            tex_x = tex_width - tex_x - 1
+
+        # how much to increase the texture coordinate per screen pixel
+        step = 1.0 * tex_height / line_height
+        # starting texture coordinate
+        tex_pos = (draw_start - screen_height / 2 + line_height / 2) * step
+        for pixel_row in range(int(draw_start), int(draw_end), lod):
+            tex_y = int(tex_pos)
+            tex_pos += step
+            color = texture[tex_num].get_at((tex_x, tex_y))
+            color.a = 255
+
+            if side == 1:
+                color.r //= 2
+                color.g //= 2
+                color.b //= 2
+
+            pixels[pixel_col][pixel_row] = color
+
+        # *************
+        # FLOOR CASTING method 2: vertical stripes
+        # *************
+        if floorcast_method == floorcast_tech[1]:
+            # x and y position of the floor texel (texture pixel) at the bottom of the wall
+            floor_x_wall, floor_y_wall = None, None
+
+            # 4 different wall directions possible
             if side == 0 and ray_dir_x > 0:
-                tex_x = tex_width - tex_x - 1
-            if side == 1 and ray_dir_y < 0:
-                tex_x = tex_width - tex_x - 1
+                floor_x_wall = map_x
+                floor_y_wall = map_y + wall_x
+            elif side == 0 and ray_dir_x < 0:
+                floor_x_wall = map_x + 1
+                floor_y_wall = map_y + wall_x
+            elif side == 1 and ray_dir_y > 0:
+                floor_x_wall = map_x + wall_x
+                floor_y_wall = map_y
+            else:
+                floor_x_wall = map_x + wall_x
+                floor_y_wall = map_y + 1
 
-            # how much to increase the texture coordinate per screen pixel
-            step = 1.0 * tex_height / line_height
-            # starting texture coordinate
-            tex_pos = (draw_start - screen_height / 2 + line_height / 2) * step
-            for pixel_row in range(int(draw_start), int(draw_end), lod):
-                tex_y = int(tex_pos)
-                tex_pos += step
-                color = texture[tex_num].get_at((tex_x, tex_y))
-                color.a = 255
+            dist_wall, dist_player, current_dist = None, None, None
 
-                if side == 1:
-                    color.r //= 2
-                    color.g //= 2
-                    color.b //= 2
+            dist_wall = perp_wall_dist
+            dist_player = 0.0
 
-                pixels[pixel_col][pixel_row] = color
+            if draw_end < 0:
+                draw_end = screen_height
 
-            for pixel_row in range(0, int(draw_start), -1):
-                straightline_distance_to_floor_intersection = (player_height / (pixel_row - player_height)) * (0.5 / math.tan(math.radians(33)))
+            for pixel_row in range(int(draw_end) + 1, screen_height, lod):
+                current_dist = screen_height / (2.0 * pixel_row - screen_height)  # you could make a lookup table for this instead
 
-                # color = tuple(color)
+                weight = (current_dist - dist_player) / (dist_wall - dist_player)
+
+                current_floor_x = weight * floor_x_wall + (1.0 - weight) * pos_x
+                current_floor_y = weight * floor_y_wall + (1.0 - weight) * pos_y
+
+                floor_tex_x = int(current_floor_x * tex_width) % tex_width
+                floor_tex_y = int(current_floor_y * tex_height) % tex_height
+
+                # floor
+                pixels[pixel_col][pixel_row] = texture[floor_texture].get_at((floor_tex_x, floor_tex_y))
+
+                # ceiling (symmetrical!)
+                pixels[pixel_col][screen_height - pixel_row] = texture[ceiling_texture].get_at((floor_tex_x, floor_tex_y))
+
+            # color = tuple(color)
 
             # draw_start_pair = (pixel_col, int(draw_start))
             # draw_end_pair = (pixel_col, int(draw_end))
