@@ -5,24 +5,8 @@ import numpy as np
 import helpers as helper
 import time
 import copy
-import os
 # from OpenGL.GL import *
 # from OpenGL.GLU import *
-
-
-def load_image(name, colorkey=None):
-    fullname = os.path.join('pics', name)
-    try:
-        image = pygame.image.load(fullname)
-    except pygame.error as message:
-        print('Cannot load image:', name)
-        raise SystemExit(message)
-    image = image.convert()
-    if colorkey is not None:
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey, RLEACCEL)
-    return image
 
 
 pygame.init()
@@ -105,21 +89,21 @@ texture = []
 for tex in range(8):
     texture.append([])
     if tex == 0:
-        texture[tex] = load_image('eagle.png')
+        texture[tex] = helper.load_image('eagle.png')
     if tex == 1:
-        texture[tex] = load_image('redbrick.png')
+        texture[tex] = helper.load_image('redbrick.png')
     if tex == 2:
-        texture[tex] = load_image('purplestone.png')
+        texture[tex] = helper.load_image('purplestone.png')
     if tex == 3:
-        texture[tex] = load_image('greystone.png')
+        texture[tex] = helper.load_image('greystone.png')
     if tex == 4:
-        texture[tex] = load_image('bluestone.png')
+        texture[tex] = helper.load_image('bluestone.png')
     if tex == 5:
-        texture[tex] = load_image('mossy.png')
+        texture[tex] = helper.load_image('mossy.png')
     if tex == 6:
-        texture[tex] = load_image('wood.png')
+        texture[tex] = helper.load_image('wood.png')
     if tex == 7:
-        texture[tex] = load_image('colorstone.png')
+        texture[tex] = helper.load_image('colorstone.png')
     # texture[tex] = tuple(texture[tex])
 
 # for i in range(8):
@@ -137,6 +121,7 @@ floorcast_tech = ['scanline', 'vertical']
 floorcast_method = 'vertical'
 
 while True:
+    # process input
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             sys.exit()
@@ -161,6 +146,7 @@ while True:
 
     # print(f'pos_x, pos_y = {pos_x}, {pos_y}')
 
+    # begin updating the game state
     if move_forward:
         # move forward if there's no wall in front of you
         if not world_map[int(pos_x + dir_x * move_speed), int(pos_y)]:

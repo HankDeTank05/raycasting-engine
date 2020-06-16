@@ -1,3 +1,22 @@
+import pygame
+import os
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('pics', name)
+    try:
+        image = pygame.image.load(fullname)
+    except pygame.error as message:
+        print('Cannot load image:', name)
+        raise SystemExit(message)
+    image = image.convert()
+    if colorkey is not None:
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey, RLEACCEL)
+    return image
+
+
 def get_camera_x(pixel_col: int, screen_width: int):
     """
     get the x-coordinate in camera space
@@ -89,7 +108,8 @@ def get_step_and_side_dist_xy(ray_dir_xy, pos_xy, map_xy, delta_dist_xy):
         return 1, (map_xy + 1 - pos_xy) * delta_dist_xy  # return step_xy, side_dist_xy
 
 
-def perform_dda_algorithm(map_x, map_y, step_x, step_y, side_dist_x, side_dist_y, delta_dist_x, delta_dist_y, world_map):
+def perform_dda_algorithm(map_x, map_y, step_x, step_y, side_dist_x, side_dist_y, delta_dist_x, delta_dist_y,
+                          world_map):
     while True:
         if side_dist_x < side_dist_y:
             side_dist_x += delta_dist_x
@@ -105,5 +125,3 @@ def perform_dda_algorithm(map_x, map_y, step_x, step_y, side_dist_x, side_dist_y
 
 def get_perp_wall_dist(map_xy, pos_xy, step_xy, ray_dir_xy):
     return (map_xy - pos_xy + (1 - step_xy) / 2) / ray_dir_xy
-
-
