@@ -11,7 +11,7 @@ import copy
 
 pygame.init()
 
-screen_size = screen_width, screen_height = 320, 200
+screen_size = screen_width, screen_height = 640, 480
 
 player_height = screen_height / 2
 
@@ -134,15 +134,15 @@ while True:
                 move_forward = True
             if event.key == pygame.K_DOWN:
                 move_backward = True
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT:
-                rotate_left = False
-            if event.key == pygame.K_RIGHT:
-                rotate_right = False
-            if event.key == pygame.K_UP:
-                move_forward = False
-            if event.key == pygame.K_DOWN:
-                move_backward = False
+        # elif event.type == pygame.KEYUP:
+        #     if event.key == pygame.K_LEFT:
+        #         rotate_left = False
+        #     if event.key == pygame.K_RIGHT:
+        #         rotate_right = False
+        #     if event.key == pygame.K_UP:
+        #         move_forward = False
+        #     if event.key == pygame.K_DOWN:
+        #         move_backward = False
 
     # print(f'pos_x, pos_y = {pos_x}, {pos_y}')
 
@@ -169,6 +169,7 @@ while True:
         old_plane_x = plane_x
         plane_x = plane_x * math.cos(-rotation_speed) - plane_y * math.sin(-rotation_speed)
         plane_y = old_plane_x * math.sin(-rotation_speed) + plane_y * math.cos(-rotation_speed)
+        rotate_left = False
         pass
     elif rotate_right:
         # rotate to the left (camera direction and camera plane must be rotated)
@@ -178,6 +179,7 @@ while True:
         old_plane_x = plane_x
         plane_x = plane_x * math.cos(rotation_speed) - plane_y * math.sin(rotation_speed)
         plane_y = old_plane_x * math.sin(rotation_speed) + plane_y * math.cos(rotation_speed)
+        rotate_right = False
         pass
 
     # process the game logic
