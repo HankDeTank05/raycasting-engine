@@ -27,7 +27,7 @@ def load_image(name, colorkey=None):
 
 pygame.init()
 
-screen_size = screen_width, screen_height = 320, 200
+screen_size = screen_width, screen_height = 128, 100
 
 player_height = screen_height / 2
 
