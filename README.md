@@ -62,10 +62,10 @@ I used this tutorial - was incredibly helpful, despite being written in C++, whi
 https://lodev.org/cgtutor/raycasting.html
 
 ## features to add
-- ability to render textured images, in addition to untextured
-- add a way to procedurally generate mazes and use them as game maps
-- functional minimap
-  - revealing minimap based on what the player has seen
+- (DONE) ability to render textured images, in addition to untextured
+- (DONE) add a way to procedurally generate mazes and use them as game maps
+- (DONE) functional minimap
+  - (DONE) revealing minimap based on what the player has seen
 - ability to render pits in the floor
 - ability to render walls of a different height
 - ability for player to look up and down
